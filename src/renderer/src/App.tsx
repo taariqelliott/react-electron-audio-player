@@ -1,119 +1,132 @@
+import { Pause, Play, Square } from 'lucide-react'
 import { ChangeEvent, JSX, useRef, useState } from 'react'
 import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
 
 export default function App(): JSX.Element {
-  const audioCTX = useRef<AudioContext | null>(null)
-  const sourceRef = useRef<AudioBufferSourceNode | null>(null)
-  const bufferRef = useRef<AudioBuffer | null>(null)
-  const startedAtRef = useRef<number>(0)
-  const pausedAtRef = useRef<number>(0)
-  const rafRef = useRef<number | null>(null)
-  const isManualStopRef = useRef(false)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null)
+  const decodedBufferRef = useRef<AudioBuffer | null>(null)
+  const playbackStartRef = useRef<number>(0)
+  const playbackPauseRef = useRef<number>(0)
+  const animationFrameRef = useRef<number | null>(null)
+  const manualStopRef = useRef(false)
 
   const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
+  const [playbackTime, setPlaybackTime] = useState(0)
+  const [trackDuration, setTrackDuration] = useState(0)
 
-  const getAudioCTX = (): AudioContext => {
-    if (!audioCTX.current || audioCTX.current.state === 'closed') {
-      audioCTX.current = new AudioContext()
+  const getAudioContext = (): AudioContext => {
+    if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+      audioContextRef.current = new AudioContext()
     }
-    return audioCTX.current
+    return audioContextRef.current
   }
 
-  const tick = (): void => {
-    setCurrentTime(getAudioCTX().currentTime - startedAtRef.current)
-    rafRef.current = requestAnimationFrame(tick)
+  const updatePlaybackTime = (): void => {
+    setPlaybackTime(getAudioContext().currentTime - playbackStartRef.current)
+    animationFrameRef.current = requestAnimationFrame(updatePlaybackTime)
   }
 
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     if (!event.target.files) return
 
-    isManualStopRef.current = true
-    sourceRef.current?.stop()
-    sourceRef.current = null
+    manualStopRef.current = true
+    sourceNodeRef.current?.stop()
+    sourceNodeRef.current = null
 
-    if (audioCTX.current) {
-      await audioCTX.current.close()
+    if (audioContextRef.current) {
+      await audioContextRef.current.close()
     }
 
-    audioCTX.current = new AudioContext()
+    audioContextRef.current = new AudioContext()
 
-    pausedAtRef.current = 0
-    startedAtRef.current = 0
+    playbackPauseRef.current = 0
+    playbackStartRef.current = 0
     setIsPlaying(false)
-    setCurrentTime(0)
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    setPlaybackTime(0)
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
 
     const file = event.target.files[0]
-    const arrayBuffer = await file.arrayBuffer()
-    bufferRef.current = await audioCTX.current.decodeAudioData(arrayBuffer)
+    const rawBytes = await file.arrayBuffer()
+    decodedBufferRef.current = await audioContextRef.current.decodeAudioData(rawBytes)
+    const duration = decodedBufferRef.current.duration
+    setTrackDuration(duration)
   }
 
   const play = async (): Promise<void> => {
-    if (!bufferRef.current) return
-    const ctx = getAudioCTX()
+    if (!decodedBufferRef.current) return
+    const audioContext = getAudioContext()
 
-    isManualStopRef.current = true
-    sourceRef.current?.stop()
-    sourceRef.current = null
+    manualStopRef.current = true
+    sourceNodeRef.current?.stop()
+    sourceNodeRef.current = null
 
-    const source = ctx.createBufferSource()
-    source.buffer = bufferRef.current
-    source.connect(ctx.destination)
-    source.start(0, pausedAtRef.current)
-    startedAtRef.current = ctx.currentTime - pausedAtRef.current
-    isManualStopRef.current = false
+    const sourceNode = audioContext.createBufferSource()
+    sourceNode.buffer = decodedBufferRef.current
+    sourceNode.connect(audioContext.destination)
+    sourceNode.start(0, playbackPauseRef.current)
+    playbackStartRef.current = audioContext.currentTime - playbackPauseRef.current
+    manualStopRef.current = false
 
-    source.onended = () => {
-      if (isManualStopRef.current) {
-        isManualStopRef.current = false
+    sourceNode.onended = () => {
+      if (manualStopRef.current) {
+        manualStopRef.current = false
         return
       }
-      sourceRef.current = null
-      pausedAtRef.current = 0
-      startedAtRef.current = 0
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-      setCurrentTime(0)
+      sourceNodeRef.current = null
+      playbackPauseRef.current = 0
+      playbackStartRef.current = 0
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
+      setPlaybackTime(0)
       setIsPlaying(false)
     }
 
-    sourceRef.current = source
+    sourceNodeRef.current = sourceNode
     setIsPlaying(true)
-    rafRef.current = requestAnimationFrame(tick)
+    animationFrameRef.current = requestAnimationFrame(updatePlaybackTime)
+    console.log(trackDuration)
   }
 
   const pause = (): void => {
-    isManualStopRef.current = true
-    sourceRef.current?.stop()
-    pausedAtRef.current = getAudioCTX().currentTime - startedAtRef.current
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    manualStopRef.current = true
+    sourceNodeRef.current?.stop()
+    playbackPauseRef.current = getAudioContext().currentTime - playbackStartRef.current
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
     setIsPlaying(false)
   }
 
   const stop = (): void => {
-    isManualStopRef.current = true
-    sourceRef.current?.stop()
-    sourceRef.current = null
-    pausedAtRef.current = 0
-    startedAtRef.current = 0
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    setCurrentTime(0)
+    manualStopRef.current = true
+    sourceNodeRef.current?.stop()
+    sourceNodeRef.current = null
+    playbackPauseRef.current = 0
+    playbackStartRef.current = 0
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
+    setPlaybackTime(0)
     setIsPlaying(false)
   }
 
   return (
-    <div className="h-screen w-full justify-center items-center flex flex-col transition-all duration-100 gap-4">
-      <p>Current time: {currentTime.toFixed(2)}s</p>
+    <div className="h-screen w-full justify-center items-center flex flex-col transition-all duration-100 gap-4 bg-primary-foreground">
+      <p className="flex gap-1">
+        Current time: <span className="tabular-nums">{playbackTime.toFixed(2)}s</span>
+      </p>
       <section className="flex gap-2">
         <Button className="w-18" onClick={isPlaying ? pause : play} variant="default">
-          {isPlaying ? 'Pause' : 'Play'}
+          {isPlaying ? <Pause /> : <Play />}
         </Button>
         <Button className="w-18" onClick={stop} variant="default">
-          Stop
+          <Square />
         </Button>
       </section>
       <Input type="file" accept="audio/*" onChange={handleUpload} className="my-2 max-w-3/4" />
+      <div className="w-3/4 relative bg-teal-500 h-6 rounded overflow-hidden">
+        <div
+          className={`absolute bg-yellow-200 h-6`}
+          style={{ width: `${(playbackTime / trackDuration) * 100}%` }}
+        ></div>
+      </div>
     </div>
   )
 }
