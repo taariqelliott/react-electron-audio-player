@@ -120,7 +120,12 @@ export default function App(): JSX.Element {
           <Square />
         </Button>
       </section>
-      <Input type="file" accept="audio/*" onChange={handleUpload} className="my-2 max-w-3/4" />
+      <Input
+        type="file"
+        accept="audio/*"
+        onChange={handleUpload}
+        className="my-2 max-w-3/4 hover:opacity-85 transition-opacity duration-200 cursor-pointer"
+      />
       <div className="w-3/4 relative bg-teal-500 h-6 rounded overflow-hidden">
         <div
           className={`absolute bg-yellow-200 h-6`}
