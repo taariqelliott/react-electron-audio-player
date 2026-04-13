@@ -2,6 +2,7 @@ import { Pause, Play, Square } from 'lucide-react'
 import { ChangeEvent, JSX, useRef, useState } from 'react'
 import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
+import { manifest } from './testfiles/manifest.json'
 
 export default function App(): JSX.Element {
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -107,6 +108,8 @@ export default function App(): JSX.Element {
     setIsPlaying(false)
   }
 
+  console.log(Object.entries(manifest))
+
   return (
     <div className="h-screen w-full justify-center items-center flex flex-col transition-all duration-100 gap-4 bg-primary-foreground">
       <p className="flex gap-1">
@@ -132,6 +135,18 @@ export default function App(): JSX.Element {
           style={{ width: `${(playbackTime / trackDuration) * 100}%` }}
         ></div>
       </div>
+      {/* {tracks.map(({ addedAt, artist, duration, file, order, title }) => (
+        <div
+          key={addedAt}
+          className="flex flex-col bg-accent-foreground text-primary-foreground w-2/6 rounded px-4"
+        >
+          <p>{artist}</p>
+          <p>{duration}</p>
+          <p>{file}</p>
+          <p>{order}</p>
+          <p>{title}</p>
+        </div>
+      ))} */}
     </div>
   )
 }

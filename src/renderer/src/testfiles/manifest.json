@@ -1,0 +1,38 @@
+{
+  "manifest": {
+    "id": "Baduizm-1712345678",
+    "name": "Baduizm",
+    "type": "album",
+    "artist": "Erykah Badu",
+    "artwork": "artwork.jpg",
+    "created": "2026-04-06T10:00:00Z",
+    "updated": "2026-04-06T11:30:00Z",
+    "totalTracks": 3,
+    "tracks": [
+      {
+        "order": 1,
+        "file": "on_and_on.mp3",
+        "title": "On & On",
+        "artist": "Erykah Badu",
+        "duration": 256,
+        "addedAt": "2026-04-06T10:05:00Z"
+      },
+      {
+        "order": 2,
+        "file": "bag_lady.wav",
+        "title": "Bag Lady",
+        "artist": "Erykah Badu",
+        "duration": 313,
+        "addedAt": "2026-04-06T10:10:00Z"
+      },
+      {
+        "order": 3,
+        "file": "window_seat.flac",
+        "title": "Window Seat",
+        "artist": "Erykah Badu",
+        "duration": 307,
+        "addedAt": "2026-04-06T10:15:00Z"
+      }
+    ]
+  }
+}

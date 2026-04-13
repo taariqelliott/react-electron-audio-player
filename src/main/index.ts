@@ -1,7 +1,10 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { electronApp, is, optimizer } from '@electron-toolkit/utils'
+import Database from 'better-sqlite3'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import fs from 'fs'
+import path, { join } from 'path'
 import icon from '../../resources/icon.png?asset'
+import { faker } from '@faker-js/faker'
 
 function createWindow(): void {
   // Create the browser window.
@@ -13,7 +16,8 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      nodeIntegration: true
     }
   })
 
@@ -35,6 +39,8 @@ function createWindow(): void {
   }
 }
 
+// console.log(__dirname)
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -48,6 +54,46 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+
+  // if (app.isPackaged) {
+  //   console.log('App is in prod mode.')
+  // } else {
+  //   console.log('App is dev mode')
+  // }
+
+  const dbPath = path.join(app.getPath('userData'), 'database.db')
+  let dbFileExists = false
+  fs.readdirSync(app.getPath('userData')).some((file) => {
+    if (file === 'database.db') {
+      console.log('Database file exists.')
+      dbFileExists = true
+      return
+    }
+  })
+
+  if (!dbFileExists) {
+    console.log('Creating new DB file at:', app.getPath('userData'))
+    const db = new Database(dbPath)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL
+        )
+        `)
+    db.close()
+  }
+
+  // Connect to DB
+  const db = new Database(dbPath)
+  const insert = db.prepare('INSERT INTO users (name, email) VALUES (?, ?)')
+  db.prepare('DELETE FROM users').run()
+  for (let i = 0; i < 15; i++) {
+    insert.run(faker.person.firstName(), faker.internet.email())
+  }
+  const rows = db.prepare('SELECT * FROM users').all()
+  console.log(rows)
+  db.close()
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
