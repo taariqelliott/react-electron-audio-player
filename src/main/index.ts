@@ -1,9 +1,10 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { faker } from '@faker-js/faker'
 import Database from 'better-sqlite3'
-import { app, BrowserWindow, shell } from 'electron'
-import path, { join } from 'path'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import fs from 'node:fs'
+import path, { join } from 'node:path'
 import icon from '../../resources/icon.png?asset'
+import { dialog } from 'electron'
 
 let db: Database.Database
 
@@ -44,30 +45,55 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // ─── Database ─────────────────────────────────────────────────────────────
+  // ─── Database & Config ─────────────────────────────────────────────────────────────
+
+  const configExists = fs.existsSync(path.join(app.getPath('userData'), 'config.json'))
+  if (!configExists) {
+    fs.writeFileSync(
+      path.join(app.getPath('userData'), 'config.json'),
+      JSON.stringify({ libraryRoot: null }, null, 2)
+    )
+  }
 
   const dbPath = path.join(app.getPath('userData'), 'database.db')
   console.log('DB location:', app.getPath('userData'))
   db = new Database(dbPath)
+  db.pragma('journal_mode = WAL')
+  db.pragma('foreign_keys = ON')
 
   db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id    INTEGER PRIMARY KEY AUTOINCREMENT,
-      name  TEXT    NOT NULL,
-      email TEXT    NOT NULL
+    CREATE TABLE IF NOT EXISTS folders (
+      id          INTEGER   PRIMARY KEY AUTOINCREMENT,
+      name        TEXT      NOT NULL,
+      type        TEXT      NOT NULL,
+      artist      TEXT      NOT NULL,
+      artwork     TEXT      NOT NULL,
+      folderPath  TEXT      NOT NULL,
+      totalTracks INTEGER   NOT NULL,
+      createdAt   TEXT      NOT NULL,
+      updatedAt   TEXT      NOT NULL
     )
   `)
 
-  if (!app.isPackaged) {
-    const insert = db.prepare('INSERT INTO users (name, email) VALUES (?, ?)')
-    db.prepare('DELETE FROM users').run()
-    for (let i = 0; i < 1500; i++) {
-      insert.run(faker.person.firstName(), faker.internet.email())
-    }
-  }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tracks (
+      id          INTEGER   PRIMARY KEY AUTOINCREMENT,
+      folderId    INTEGER   NOT NULL,
+      title       TEXT      NOT NULL,
+      artist      TEXT      NOT NULL,
+      filename    TEXT      NOT NULL,
+      duration    INTEGER   NOT NULL,
+      trackOrder  INTEGER   NOT NULL,
+      folderPath  TEXT      NOT NULL,
+      addedAt     TEXT      NOT NULL,
+      FOREIGN KEY (folderId) REFERENCES folders(id) ON DELETE CASCADE
+    )
+  `)
 
-  const rows = db.prepare('SELECT * FROM users').all()
-  console.log(rows)
+  const folders = db.prepare('SELECT * FROM folders').all()
+  const tracks = db.prepare('SELECT * FROM tracks').all()
+  console.log('Folders:', folders)
+  console.log('Tracks:', tracks)
 
   // ─── Window ───────────────────────────────────────────────────────────────
 
@@ -76,6 +102,27 @@ app.whenReady().then(() => {
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+ipcMain.handle('select-library-root', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory', 'createDirectory']
+  })
+  if (result.canceled) return null
+  const libraryRoot = result.filePaths[0]
+
+  fs.writeFileSync(
+    path.join(app.getPath('userData'), 'config.json'),
+    JSON.stringify({ libraryRoot }, null, 2)
+  )
+  return libraryRoot
+})
+
+ipcMain.handle('read-config-file', () => {
+  const configFile = JSON.parse(
+    fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf-8')
+  )
+  return configFile
 })
 
 app.on('window-all-closed', () => {
