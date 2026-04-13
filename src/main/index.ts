@@ -9,8 +9,8 @@ let db: Database.Database
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 1100,
+    height: 870,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -61,7 +61,7 @@ app.whenReady().then(() => {
   if (!app.isPackaged) {
     const insert = db.prepare('INSERT INTO users (name, email) VALUES (?, ?)')
     db.prepare('DELETE FROM users').run()
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 1500; i++) {
       insert.run(faker.person.firstName(), faker.internet.email())
     }
   }
