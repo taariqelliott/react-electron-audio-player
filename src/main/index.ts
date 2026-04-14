@@ -1,10 +1,9 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import Database from 'better-sqlite3'
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import fs from 'node:fs'
 import path, { join } from 'node:path'
 import icon from '../../resources/icon.png?asset'
-import { dialog } from 'electron'
 
 let db: Database.Database
 
@@ -45,19 +44,21 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // ─── Database & Config ─────────────────────────────────────────────────────────────
+  // ─── Config ───────────────────────────────────────────────────────────────
 
-  const configExists = fs.existsSync(path.join(app.getPath('userData'), 'config.json'))
-  if (!configExists) {
+  const configFileExists = fs.existsSync(path.join(app.getPath('userData'), 'config.json'))
+  if (!configFileExists) {
     fs.writeFileSync(
       path.join(app.getPath('userData'), 'config.json'),
       JSON.stringify({ libraryRoot: null }, null, 2)
     )
   }
 
-  const dbPath = path.join(app.getPath('userData'), 'database.db')
+  // ─── Database ─────────────────────────────────────────────────────────────
+
+  const databasePath = path.join(app.getPath('userData'), 'database.db')
   console.log('DB location:', app.getPath('userData'))
-  db = new Database(dbPath)
+  db = new Database(databasePath)
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
 
@@ -104,18 +105,22 @@ app.whenReady().then(() => {
   })
 })
 
+// ─── IPC Handlers ─────────────────────────────────────────────────────────────
+
 ipcMain.handle('select-library-root', async () => {
-  const result = await dialog.showOpenDialog({
+  const dialogResult = await dialog.showOpenDialog({
     properties: ['openDirectory', 'createDirectory']
   })
-  if (result.canceled) return null
-  const libraryRoot = result.filePaths[0]
+  if (dialogResult.canceled) return null
+
+  const selectedLibraryRoot = dialogResult.filePaths[0]
 
   fs.writeFileSync(
     path.join(app.getPath('userData'), 'config.json'),
-    JSON.stringify({ libraryRoot }, null, 2)
+    JSON.stringify({ libraryRoot: selectedLibraryRoot }, null, 2)
   )
-  return libraryRoot
+
+  return selectedLibraryRoot
 })
 
 ipcMain.handle('read-config-file', () => {
@@ -124,6 +129,8 @@ ipcMain.handle('read-config-file', () => {
   )
   return configFile
 })
+
+// ─── Cleanup ──────────────────────────────────────────────────────────────────
 
 app.on('window-all-closed', () => {
   db.close()

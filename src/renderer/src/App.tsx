@@ -2,7 +2,7 @@ import { Pause, Play, Square } from 'lucide-react'
 import { ChangeEvent, JSX, useEffect, useRef, useState } from 'react'
 import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
-import { AppConfig } from './types'
+import { AppConfig } from './interface'
 
 export default function App(): JSX.Element {
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -20,14 +20,14 @@ export default function App(): JSX.Element {
 
   useEffect(() => {
     const loadAppConfig = async (): Promise<void> => {
-      const config = await window.api.readConfigFile()
+      const config = await window.musicPlayer.readConfigFile()
       setAppConfig(config)
     }
     loadAppConfig()
   }, [])
 
   const selectLibraryRoot = async (): Promise<void> => {
-    const selectedPath = await window.api.selectLibraryRoot()
+    const selectedPath = await window.musicPlayer.selectLibraryRoot()
     setAppConfig({ libraryRoot: selectedPath })
   }
 

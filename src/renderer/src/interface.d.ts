@@ -1,8 +1,12 @@
+export type AppConfig = {
+  libraryRoot: string | null
+}
+
 declare global {
   interface Window {
-    api: {
+    musicPlayer: {
       selectLibraryRoot: () => Promise<string | null>
-      readConfigFile: () => Promise<ConfigRoot>
+      readConfigFile: () => Promise<AppConfig>
     }
   }
 }

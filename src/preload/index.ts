@@ -4,7 +4,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', {
+    contextBridge.exposeInMainWorld('musicPlayer', {
       selectLibraryRoot: () => ipcRenderer.invoke('select-library-root'),
       readConfigFile: () => ipcRenderer.invoke('read-config-file')
     })
@@ -16,7 +16,7 @@ if (process.contextIsolated) {
   window.electron = electronAPI
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  window.api = {
+  window.musicPlayer = {
     selectLibraryRoot: () => ipcRenderer.invoke('select-library-root'),
     readConfigFile: () => ipcRenderer.invoke('read-config-file')
   }
