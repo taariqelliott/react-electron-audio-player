@@ -13,7 +13,8 @@ export type Manifest = {
   type: string
   artist: string
   artwork: string
-  totalTracks: 0
+  folderPath: string
+  totalTracks: number
   tracks: string[]
   createdAt: string
   updatedAt: string

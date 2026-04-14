@@ -69,7 +69,7 @@ app.whenReady().then(() => {
       name        TEXT      NOT NULL,
       type        TEXT      NOT NULL,
       artist      TEXT      NOT NULL,
-      artwork     TEXT      NOT NULL,
+      artwork     TEXT              ,
       folderPath  TEXT      NOT NULL,
       totalTracks INTEGER   NOT NULL,
       createdAt   TEXT      NOT NULL,
@@ -136,8 +136,8 @@ ipcMain.handle('create-folder', async (_event, { name, type, artist }: CreateFol
     fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf-8')
   )
 
-  const newFolderPath = path.join(config.libraryRoot, name)
-  fs.mkdirSync(newFolderPath, { recursive: true })
+  const folderPath = path.join(config.libraryRoot, name)
+  fs.mkdirSync(folderPath, { recursive: true })
 
   const manifest = {
     name,
@@ -145,12 +145,20 @@ ipcMain.handle('create-folder', async (_event, { name, type, artist }: CreateFol
     artist,
     artwork: '',
     totalTracks: 0,
+    folderPath,
     tracks: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }
 
-  fs.writeFileSync(path.join(newFolderPath, '.manifest.json'), JSON.stringify(manifest, null, 2))
+  fs.writeFileSync(path.join(folderPath, '.manifest.json'), JSON.stringify(manifest, null, 2))
+
+  db.prepare(
+    `
+    INSERT INTO folders (name, type, artist, artwork, folderPath, totalTracks, createdAt, updatedAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `
+  ).run(name, type, artist, '', folderPath, 0, manifest.createdAt, manifest.updatedAt)
 
   return manifest
 })
