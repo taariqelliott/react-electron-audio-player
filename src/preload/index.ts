@@ -1,4 +1,5 @@
 import { electronAPI } from '@electron-toolkit/preload'
+import { CreateFolderArgs } from '@shared/types'
 import { contextBridge, ipcRenderer } from 'electron'
 
 if (process.contextIsolated) {
@@ -6,7 +7,8 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('musicPlayer', {
       selectLibraryRoot: () => ipcRenderer.invoke('select-library-root'),
-      readConfigFile: () => ipcRenderer.invoke('read-config-file')
+      readConfigFile: () => ipcRenderer.invoke('read-config-file'),
+      createFolder: (args: CreateFolderArgs) => ipcRenderer.invoke('create-folder', args)
     })
   } catch (error) {
     console.error(error)
@@ -18,6 +20,7 @@ if (process.contextIsolated) {
   // @ts-ignore
   window.musicPlayer = {
     selectLibraryRoot: () => ipcRenderer.invoke('select-library-root'),
-    readConfigFile: () => ipcRenderer.invoke('read-config-file')
+    readConfigFile: () => ipcRenderer.invoke('read-config-file'),
+    createFolder: (args: CreateFolderArgs) => ipcRenderer.invoke('create-folder', args)
   }
 }

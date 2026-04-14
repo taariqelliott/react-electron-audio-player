@@ -2,7 +2,8 @@ import { Pause, Play, Square } from 'lucide-react'
 import { ChangeEvent, JSX, useEffect, useRef, useState } from 'react'
 import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
-import { AppConfig } from './interface'
+import { Label } from './components/ui/label'
+import { AppConfig, CreateFolderArgs, Manifest } from './shared/types'
 
 export default function App(): JSX.Element {
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -17,6 +18,10 @@ export default function App(): JSX.Element {
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0)
   const [totalTrackDuration, setTotalTrackDuration] = useState(0)
   const [appConfig, setAppConfig] = useState<AppConfig>()
+  const [folderName, setFolderName] = useState('')
+  const [folderType, setFolderType] = useState('')
+  const [folderArtist, setFolderArtist] = useState('')
+  const [folders, setFolders] = useState<Manifest[]>([])
 
   useEffect(() => {
     const loadAppConfig = async (): Promise<void> => {
@@ -29,6 +34,20 @@ export default function App(): JSX.Element {
   const selectLibraryRoot = async (): Promise<void> => {
     const selectedPath = await window.musicPlayer.selectLibraryRoot()
     setAppConfig({ libraryRoot: selectedPath })
+  }
+
+  const createFolder = async (): Promise<void> => {
+    const folderArgs: CreateFolderArgs = {
+      artist: folderArtist,
+      name: folderName,
+      type: folderType
+    }
+    const newFolder = await window.musicPlayer.createFolder(folderArgs)
+    setFolders((prev) => [...prev, newFolder])
+    console.log(newFolder)
+    setFolderArtist('')
+    setFolderType('')
+    setFolderName('')
   }
 
   const getOrCreateAudioContext = (): AudioContext => {
@@ -158,6 +177,57 @@ export default function App(): JSX.Element {
           className="absolute bg-amber-200 h-6"
           style={{ width: `${(currentPlaybackTime / totalTrackDuration) * 100}%` }}
         />
+      </div>
+      <div className="flex items-center justify-center flex-col gap-2">
+        <Label htmlFor="folderType">Folder Type</Label>
+        <Input
+          type="text"
+          id="folderType"
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            setFolderType(event.target.value)
+          }}
+          value={folderType}
+        />
+        <Label htmlFor="folderName">Folder Name</Label>
+        <Input
+          type="text"
+          id="folderName"
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            setFolderName(event.target.value)
+          }}
+          value={folderName}
+        />
+        <Label htmlFor="folderArtist">Folder Artist</Label>
+        <Input
+          type="text"
+          id="folderArtist"
+          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+            setFolderArtist(event.target.value)
+          }}
+          value={folderArtist}
+        />
+        <Button onClick={createFolder}>Create Folder</Button>
+      </div>
+
+      <div className="flex items-center justify-center gap-2">
+        {folders.map(({ artist, artwork, createdAt, name, totalTracks, tracks, type }) => (
+          <div
+            className="flex items-center justify-center flex-col gap-1 rounded bg-primary text-primary-foreground w-48"
+            key={`${artist}-${name}-${createdAt}`}
+          >
+            <p>Artist: {artist}</p>
+            <p>Artwork: {artwork}</p>
+            <p>Name: {name}</p>
+            <p>
+              Tracks:
+              {tracks.map((track) => (
+                <p key={track}>{track}</p>
+              ))}
+            </p>
+            <p>Type: {type}</p>
+            <p>Total tracks: {totalTracks}</p>
+          </div>
+        ))}
       </div>
     </div>
   )

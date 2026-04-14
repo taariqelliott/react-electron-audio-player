@@ -1,4 +1,5 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
+import { CreateFolderArgs } from '@shared/types'
 import Database from 'better-sqlite3'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import fs from 'node:fs'
@@ -9,8 +10,7 @@ let db: Database.Database
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
-    width: 1100,
-    height: 870,
+    roundedCorners: false,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -22,6 +22,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
+    mainWindow.maximize()
     mainWindow.show()
   })
 
@@ -128,6 +129,30 @@ ipcMain.handle('read-config-file', () => {
     fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf-8')
   )
   return configFile
+})
+
+ipcMain.handle('create-folder', async (_event, { name, type, artist }: CreateFolderArgs) => {
+  const config = JSON.parse(
+    fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf-8')
+  )
+
+  const newFolderPath = path.join(config.libraryRoot, name)
+  fs.mkdirSync(newFolderPath, { recursive: true })
+
+  const manifest = {
+    name,
+    type,
+    artist,
+    artwork: '',
+    totalTracks: 0,
+    tracks: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+
+  fs.writeFileSync(path.join(newFolderPath, '.manifest.json'), JSON.stringify(manifest, null, 2))
+
+  return manifest
 })
 
 // ─── Cleanup ──────────────────────────────────────────────────────────────────
