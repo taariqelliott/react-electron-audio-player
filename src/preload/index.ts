@@ -8,7 +8,8 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('musicPlayer', {
       selectLibraryRoot: () => ipcRenderer.invoke('select-library-root'),
       readConfigFile: () => ipcRenderer.invoke('read-config-file'),
-      createFolder: (args: CreateFolderArgs) => ipcRenderer.invoke('create-folder', args)
+      createFolder: (args: CreateFolderArgs) => ipcRenderer.invoke('create-folder', args),
+      libraryRootExists: (path: string) => ipcRenderer.invoke('library-root-exists', path)
     })
   } catch (error) {
     console.error(error)
@@ -21,6 +22,7 @@ if (process.contextIsolated) {
   window.musicPlayer = {
     selectLibraryRoot: () => ipcRenderer.invoke('select-library-root'),
     readConfigFile: () => ipcRenderer.invoke('read-config-file'),
-    createFolder: (args: CreateFolderArgs) => ipcRenderer.invoke('create-folder', args)
+    createFolder: (args: CreateFolderArgs) => ipcRenderer.invoke('create-folder', args),
+    libraryRootExists: (path: string) => ipcRenderer.invoke('library-root-exists', path)
   }
 }

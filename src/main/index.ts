@@ -155,6 +155,11 @@ ipcMain.handle('create-folder', async (_event, { name, type, artist }: CreateFol
   return manifest
 })
 
+ipcMain.handle('library-root-exists', (_event, libraryRootPath: string): boolean => {
+  const libraryRootExists = fs.existsSync(libraryRootPath)
+  return libraryRootExists
+})
+
 // ─── Cleanup ──────────────────────────────────────────────────────────────────
 
 app.on('window-all-closed', () => {

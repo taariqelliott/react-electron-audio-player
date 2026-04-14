@@ -1,4 +1,4 @@
-import { Pause, Play, Square } from 'lucide-react'
+import { FolderX, Loader2, Music2, Pause, Play, Square } from 'lucide-react'
 import { ChangeEvent, JSX, useEffect, useRef, useState } from 'react'
 import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
@@ -22,14 +22,32 @@ export default function App(): JSX.Element {
   const [folderType, setFolderType] = useState('')
   const [folderArtist, setFolderArtist] = useState('')
   const [folders, setFolders] = useState<Manifest[]>([])
+  const [libraryRootExists, setLibraryRootExists] = useState<boolean>()
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true)
 
   useEffect(() => {
     const loadAppConfig = async (): Promise<void> => {
-      const config = await window.musicPlayer.readConfigFile()
-      setAppConfig(config)
+      try {
+        const config = await window.musicPlayer.readConfigFile()
+        setAppConfig(config)
+      } catch (error) {
+        console.error('Failed to load config:', error)
+        setAppConfig({ libraryRoot: null })
+      } finally {
+        setIsLoadingConfig(false)
+      }
     }
     loadAppConfig()
   }, [])
+
+  useEffect(() => {
+    const verifyLibraryRootExists = async (): Promise<void> => {
+      if (!appConfig?.libraryRoot) return
+      const exists = await window.musicPlayer.libraryRootExists(appConfig.libraryRoot)
+      setLibraryRootExists(exists)
+    }
+    verifyLibraryRootExists()
+  }, [appConfig])
 
   const selectLibraryRoot = async (): Promise<void> => {
     const selectedPath = await window.musicPlayer.selectLibraryRoot()
@@ -140,13 +158,31 @@ export default function App(): JSX.Element {
     setIsPlaying(false)
   }
 
-  if (appConfig?.libraryRoot === null) {
+  if (isLoadingConfig)
+    return (
+      <div className="h-screen w-full bg-primary-foreground items-center justify-center flex flex-col gap-2">
+        <Loader2 className="animate-spin" size={32} />
+        <p>Loading</p>
+      </div>
+    )
+
+  if (appConfig?.libraryRoot === null || !libraryRootExists) {
     return (
       <div className="h-screen w-full justify-center items-center flex flex-col transition-all duration-100 gap-4 bg-primary-foreground">
-        <div className="flex flex-col items-center justify-center">
-          <p>No Library Root Selected</p>
+        <div className="flex flex-col items-center justify-center gap-3">
+          {appConfig?.libraryRoot === null ? (
+            <>
+              <Music2 size={48} className="text-muted-foreground" />
+              <p>No Library Root Selected</p>
+            </>
+          ) : (
+            <>
+              <FolderX size={48} className="text-red-400" />
+              <p className="text-red-400">Library Folder Not Found</p>
+            </>
+          )}
           <Button variant="default" onClick={selectLibraryRoot}>
-            Set Library Root
+            {appConfig?.libraryRoot === null ? 'Select Library Folder' : 'Reset Library Folder'}
           </Button>
         </div>
       </div>
