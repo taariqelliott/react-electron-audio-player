@@ -47,6 +47,15 @@ export function useLibrary(): {
     verifyLibraryRootExists()
   }, [appConfig])
 
+  useEffect((): void => {
+    if (!libraryRootExists) return
+    const loadFolders = async (): Promise<void> => {
+      const manifests = await window.musicPlayer.getFolders()
+      setFolders(manifests)
+    }
+    loadFolders()
+  }, [libraryRootExists])
+
   const selectLibraryRoot = async (): Promise<void> => {
     const selectedPath = await window.musicPlayer.selectLibraryRoot()
     setAppConfig({ libraryRoot: selectedPath })

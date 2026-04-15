@@ -5,11 +5,14 @@ import { contextBridge, ipcRenderer } from 'electron'
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     contextBridge.exposeInMainWorld('musicPlayer', {
       selectLibraryRoot: () => ipcRenderer.invoke('select-library-root'),
       readConfigFile: () => ipcRenderer.invoke('read-config-file'),
       createFolder: (args: CreateFolderArgs) => ipcRenderer.invoke('create-folder', args),
-      libraryRootExists: (path: string) => ipcRenderer.invoke('library-root-exists', path)
+      libraryRootExists: (path: string) => ipcRenderer.invoke('library-root-exists', path),
+      getFolders: () => ipcRenderer.invoke('get-folders')
     })
   } catch (error) {
     console.error(error)
@@ -23,6 +26,7 @@ if (process.contextIsolated) {
     selectLibraryRoot: () => ipcRenderer.invoke('select-library-root'),
     readConfigFile: () => ipcRenderer.invoke('read-config-file'),
     createFolder: (args: CreateFolderArgs) => ipcRenderer.invoke('create-folder', args),
-    libraryRootExists: (path: string) => ipcRenderer.invoke('library-root-exists', path)
+    libraryRootExists: (path: string) => ipcRenderer.invoke('library-root-exists', path),
+    getFolders: () => ipcRenderer.invoke('get-folders')
   }
 }

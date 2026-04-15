@@ -13,8 +13,28 @@ export type Manifest = {
   type: string
   artist: string
   artwork: string
-  totalTracks: 0
+  folderPath: string
+  totalTracks: number
   tracks: string[]
   createdAt: string
   updatedAt: string
+}
+
+export type SetupScreenProps = {
+  libraryRootIsNull: boolean
+  onSelectLibraryRoot: () => void
+}
+
+export type CreateFolderFormProps = {
+  folderName: string
+  folderType: string
+  folderArtist: string
+  onFolderNameChange: (value: string) => void
+  onFolderTypeChange: (value: string) => void
+  onFolderArtistChange: (value: string) => void
+  onCreateFolder: () => void
+}
+
+export type FolderListProps = {
+  folders: Manifest[]
 }

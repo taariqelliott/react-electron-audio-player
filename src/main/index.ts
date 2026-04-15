@@ -24,8 +24,8 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.maximize()
     mainWindow.show()
+    mainWindow.maximize()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -62,7 +62,6 @@ app.whenReady().then(() => {
   // ─── Database ───────────────────────────────────────────────────────────
 
   const libraryDatabasePath = path.join(app.getPath('userData'), 'library.db')
-  console.log('Library database location:', libraryDatabasePath)
   db = new Database(libraryDatabasePath)
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
@@ -95,11 +94,6 @@ app.whenReady().then(() => {
       FOREIGN KEY (folderId) REFERENCES folders(id) ON DELETE CASCADE
     )
   `)
-
-  const folders = db.prepare('SELECT * FROM folders').all()
-  const tracks = db.prepare('SELECT * FROM tracks').all()
-  console.log('Folders:', folders)
-  console.log('Tracks:', tracks)
 
   // ─── Launch ─────────────────────────────────────────────────────────────
 
@@ -171,6 +165,28 @@ ipcMain.handle('create-folder', async (_event, { name, type, artist }: CreateFol
   ).run(name, type, artist, '', folderPath, 0, manifest.createdAt, manifest.updatedAt)
 
   return manifest
+})
+
+ipcMain.handle('get-folders', async () => {
+  const config = JSON.parse(
+    fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf-8')
+  )
+
+  const folderPath = config.libraryRoot
+  const subFolders = fs.readdirSync(folderPath, { withFileTypes: true })
+
+  const manifests = await Promise.all(
+    subFolders
+      .filter((subFolder) => subFolder.isDirectory())
+      .map(async (subFolder) => {
+        const manifestPath = path.join(folderPath, subFolder.name, '.manifest.json')
+        if (!fs.existsSync(manifestPath)) return null
+        const contents = await fs.promises.readFile(manifestPath, 'utf-8')
+        return JSON.parse(contents)
+      })
+  )
+
+  return manifests.filter(Boolean)
 })
 
 // ─── Cleanup ──────────────────────────────────────────────────────────────────
