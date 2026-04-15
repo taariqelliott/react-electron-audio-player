@@ -12,17 +12,17 @@ export function SetupScreen({
       <div className="flex flex-col items-center justify-center gap-3">
         {libraryRootIsNull ? (
           <>
-            <Music2 size={48} className="text-muted-foreground" />
-            <p>No music folder selected</p>
+            <Music2 size={48} className="text-purple-600 dark:text-purple-300" />
+            <p className="text-purple-600 dark:text-purple-300">Choose where to store your music</p>
           </>
         ) : (
           <>
-            <FolderX size={48} className="text-red-400" />
-            <p className="text-red-400">Music folder could not be found</p>
+            <FolderX size={48} className="text-purple-600 dark:text-purple-300" />
+            <p className="text-purple-600 dark:text-purple-300">Music folder could not be found</p>
           </>
         )}
         <Button variant="default" onClick={onSelectLibraryRoot}>
-          {libraryRootIsNull ? 'Choose music folder' : 'Choose a different folder'}
+          {libraryRootIsNull ? 'Choose music folder' : 'Select a different folder'}{' '}
         </Button>
       </div>
     </div>
