@@ -8,6 +8,8 @@ import icon from '../../resources/icon.png?asset'
 
 let db: Database.Database
 
+// ─── Window ───────────────────────────────────────────────────────────────────
+
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     roundedCorners: false,
@@ -38,6 +40,8 @@ function createWindow(): void {
   }
 }
 
+// ─── App Ready ────────────────────────────────────────────────────────────────
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
 
@@ -45,7 +49,7 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // ─── Config ───────────────────────────────────────────────────────────────
+  // ─── Config ─────────────────────────────────────────────────────────────
 
   const configFileExists = fs.existsSync(path.join(app.getPath('userData'), 'config.json'))
   if (!configFileExists) {
@@ -55,11 +59,11 @@ app.whenReady().then(() => {
     )
   }
 
-  // ─── Database ─────────────────────────────────────────────────────────────
+  // ─── Database ───────────────────────────────────────────────────────────
 
-  const databasePath = path.join(app.getPath('userData'), 'database.db')
-  console.log('DB location:', app.getPath('userData'))
-  db = new Database(databasePath)
+  const libraryDatabasePath = path.join(app.getPath('userData'), 'library.db')
+  console.log('Library database location:', libraryDatabasePath)
+  db = new Database(libraryDatabasePath)
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
 
@@ -69,7 +73,7 @@ app.whenReady().then(() => {
       name        TEXT      NOT NULL,
       type        TEXT      NOT NULL,
       artist      TEXT      NOT NULL,
-      artwork     TEXT              ,
+      artwork     TEXT,
       folderPath  TEXT      NOT NULL,
       totalTracks INTEGER   NOT NULL,
       createdAt   TEXT      NOT NULL,
@@ -97,7 +101,7 @@ app.whenReady().then(() => {
   console.log('Folders:', folders)
   console.log('Tracks:', tracks)
 
-  // ─── Window ───────────────────────────────────────────────────────────────
+  // ─── Launch ─────────────────────────────────────────────────────────────
 
   createWindow()
 
@@ -106,7 +110,14 @@ app.whenReady().then(() => {
   })
 })
 
-// ─── IPC Handlers ─────────────────────────────────────────────────────────────
+// ─── IPC — Config ─────────────────────────────────────────────────────────────
+
+ipcMain.handle('read-config-file', () => {
+  const configFile = JSON.parse(
+    fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf-8')
+  )
+  return configFile
+})
 
 ipcMain.handle('select-library-root', async () => {
   const dialogResult = await dialog.showOpenDialog({
@@ -124,12 +135,11 @@ ipcMain.handle('select-library-root', async () => {
   return selectedLibraryRoot
 })
 
-ipcMain.handle('read-config-file', () => {
-  const configFile = JSON.parse(
-    fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf-8')
-  )
-  return configFile
+ipcMain.handle('library-root-exists', (_event, libraryRootPath: string): boolean => {
+  return fs.existsSync(libraryRootPath)
 })
+
+// ─── IPC — Folders ────────────────────────────────────────────────────────────
 
 ipcMain.handle('create-folder', async (_event, { name, type, artist }: CreateFolderArgs) => {
   const config = JSON.parse(
@@ -161,11 +171,6 @@ ipcMain.handle('create-folder', async (_event, { name, type, artist }: CreateFol
   ).run(name, type, artist, '', folderPath, 0, manifest.createdAt, manifest.updatedAt)
 
   return manifest
-})
-
-ipcMain.handle('library-root-exists', (_event, libraryRootPath: string): boolean => {
-  const libraryRootExists = fs.existsSync(libraryRootPath)
-  return libraryRootExists
 })
 
 // ─── Cleanup ──────────────────────────────────────────────────────────────────
