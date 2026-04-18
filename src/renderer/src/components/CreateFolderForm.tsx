@@ -1,5 +1,7 @@
 import { CreateFolderFormProps } from '@shared/types'
-import { ChangeEvent, JSX } from 'react'
+import { InfoIcon } from 'lucide-react'
+import { ChangeEvent, JSX, useRef, useState } from 'react'
+import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 import { Button } from './ui/button'
 import {
   Dialog,
@@ -12,6 +14,7 @@ import {
 } from './ui/dialog'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
+import { useTheme } from './use-theme'
 
 export function CreateFolderForm({
   folderName,
@@ -23,6 +26,27 @@ export function CreateFolderForm({
   onFolderArtworkChange,
   onCreateFolder
 }: CreateFolderFormProps): JSX.Element {
+  const [showAlert, setShowAlert] = useState(false)
+  const [hasArtwork, setHasArtwork] = useState(false)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const triggerAlert = (): void => {
+    setShowAlert(true)
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => setShowAlert(false), 3000)
+  }
+
+  const handleCreate = (): void => {
+    if (!folderName || !folderType || !folderArtist || !hasArtwork) {
+      triggerAlert()
+      return
+    }
+    onCreateFolder()
+  }
+
+  const { theme } = useTheme()
+  console.log(theme)
+
   return (
     <div className="flex items-center justify-center flex-col gap-2">
       <Dialog>
@@ -58,12 +82,26 @@ export function CreateFolderForm({
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 if (!e.target.files) return
                 onFolderArtworkChange(e.target.files[0])
+                setHasArtwork(true)
               }}
             />
+            {showAlert && (
+              <Alert>
+                <InfoIcon
+                  color={
+                    theme === 'light' ? 'oklch(63.7% 0.237 25.331)' : 'oklch(70.4% 0.191 22.216)'
+                  }
+                />
+                <AlertTitle className="dark:text-red-400 text-red-500">Missing fields</AlertTitle>
+                <AlertDescription>
+                  Please fill in all fields and upload artwork before creating.
+                </AlertDescription>
+              </Alert>
+            )}
           </DialogHeader>
           <DialogFooter>
             <DialogClose render={<Button variant="outline">Cancel</Button>} />
-            <DialogClose render={<Button onClick={onCreateFolder}>Create Folder</Button>} />
+            <Button onClick={handleCreate}>Create Folder</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
