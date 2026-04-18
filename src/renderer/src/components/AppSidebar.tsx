@@ -84,8 +84,8 @@ export function AppSidebar({ albums, ...props }: AppSidebarProps): JSX.Element {
                   ) : (
                     albums.map((album) => (
                       <SidebarMenuSubItem key={album.folderPath}>
-                        <SidebarMenuSubButton>
-                          <p className="cursor-pointer">{album.name}</p>
+                        <SidebarMenuSubButton className="cursor-pointer">
+                          <p>{album.name}</p>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))

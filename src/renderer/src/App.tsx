@@ -74,7 +74,7 @@ export default function App(): JSX.Element {
             onChange={handleFileUpload}
             className="my-2 max-w-3/4 hover:opacity-85 transition-opacity duration-200 cursor-pointer"
           />
-          <div className="w-3/4 relative bg-pink-500 h-6 rounded overflow-hidden">
+          <div className="w-3/4 relative bg-blue-600 h-6 rounded overflow-hidden">
             <div
               className="absolute bg-amber-200 h-6"
               style={{ width: `${(currentPlaybackTime / totalTrackDuration) * 100}%` }}

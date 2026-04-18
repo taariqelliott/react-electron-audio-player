@@ -26,6 +26,7 @@ export function CreateFolderForm({
   onFolderArtworkChange,
   onCreateFolder
 }: CreateFolderFormProps): JSX.Element {
+  const [open, setOpen] = useState(false)
   const [showAlert, setShowAlert] = useState(false)
   const [hasArtwork, setHasArtwork] = useState(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -42,6 +43,8 @@ export function CreateFolderForm({
       return
     }
     onCreateFolder()
+    setOpen(false)
+    setHasArtwork(false)
   }
 
   const { theme } = useTheme()
@@ -49,7 +52,7 @@ export function CreateFolderForm({
 
   return (
     <div className="flex items-center justify-center flex-col gap-2">
-      <Dialog>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger render={<Button variant="outline">Add New Folder</Button>} />
         <DialogContent>
           <DialogHeader>
