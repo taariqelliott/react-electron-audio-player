@@ -12,6 +12,7 @@ export function useLibrary(): {
   setFolderName: (value: string) => void
   setFolderType: (value: string) => void
   setFolderArtist: (value: string) => void
+  setFolderArtwork: (file: File | null) => void
   selectLibraryRoot: () => Promise<void>
   createFolder: () => Promise<void>
 } {
@@ -22,6 +23,7 @@ export function useLibrary(): {
   const [folderName, setFolderName] = useState('')
   const [folderType, setFolderType] = useState('')
   const [folderArtist, setFolderArtist] = useState('')
+  const [folderArtwork, setFolderArtwork] = useState<File | null>(null)
 
   useEffect((): void => {
     const loadAppConfig = async (): Promise<void> => {
@@ -67,10 +69,23 @@ export function useLibrary(): {
       name: folderName,
       type: folderType
     })
-    setFolders((prev) => [...prev, newFolder])
+
+    let folderToAdd = newFolder
+
+    if (folderArtwork) {
+      const filePath = window.musicPlayer.getFilePath(folderArtwork)
+      const updatedFolder = await window.musicPlayer.uploadArtwork({
+        folderPath: newFolder.folderPath,
+        filePath
+      })
+      folderToAdd = updatedFolder
+    }
+
+    setFolders((prev) => [...prev, folderToAdd])
     setFolderArtist('')
     setFolderType('')
     setFolderName('')
+    setFolderArtwork(null)
   }
 
   return {
@@ -82,6 +97,7 @@ export function useLibrary(): {
     folderType,
     folderArtist,
     setFolderName,
+    setFolderArtwork,
     setFolderType,
     setFolderArtist,
     selectLibraryRoot,

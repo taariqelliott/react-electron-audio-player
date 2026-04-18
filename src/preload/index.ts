@@ -1,6 +1,6 @@
 import { electronAPI } from '@electron-toolkit/preload'
 import { CreateFolderArgs } from '@shared/types'
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 if (process.contextIsolated) {
   try {
@@ -12,7 +12,10 @@ if (process.contextIsolated) {
       readConfigFile: () => ipcRenderer.invoke('read-config-file'),
       createFolder: (args: CreateFolderArgs) => ipcRenderer.invoke('create-folder', args),
       libraryRootExists: (path: string) => ipcRenderer.invoke('library-root-exists', path),
-      getFolders: () => ipcRenderer.invoke('get-folders')
+      getFolders: () => ipcRenderer.invoke('get-folders'),
+      uploadArtwork: (args: { folderPath: string; filePath: string }) =>
+        ipcRenderer.invoke('upload-artwork', args),
+      getFilePath: (file: File) => webUtils.getPathForFile(file)
     })
   } catch (error) {
     console.error(error)
@@ -27,6 +30,9 @@ if (process.contextIsolated) {
     readConfigFile: () => ipcRenderer.invoke('read-config-file'),
     createFolder: (args: CreateFolderArgs) => ipcRenderer.invoke('create-folder', args),
     libraryRootExists: (path: string) => ipcRenderer.invoke('library-root-exists', path),
-    getFolders: () => ipcRenderer.invoke('get-folders')
+    getFolders: () => ipcRenderer.invoke('get-folders'),
+    uploadArtwork: (args: { folderPath: string; filePath: string }) =>
+      ipcRenderer.invoke('upload-artwork', args),
+    getFilePath: (file: File) => webUtils.getPathForFile(file)
   }
 }

@@ -1,11 +1,11 @@
 import { Pause, Play, Square } from 'lucide-react'
 import { JSX } from 'react'
-import { Button } from './components/ui/button'
-import { Input } from './components/ui/input'
 import { CreateFolderForm } from './components/CreateFolderForm'
 import { FolderList } from './components/FolderList'
 import { LoadingScreen } from './components/LoadingScreen'
 import { SetupScreen } from './components/SetupScreen'
+import { Button } from './components/ui/button'
+import { Input } from './components/ui/input'
 import { useAudioEngine } from './hooks/useAudioEngine'
 import { useLibrary } from './hooks/useLibrary'
 
@@ -31,6 +31,7 @@ export default function App(): JSX.Element {
     setFolderName,
     setFolderType,
     setFolderArtist,
+    setFolderArtwork,
     selectLibraryRoot,
     createFolder
   } = useLibrary()
@@ -75,6 +76,7 @@ export default function App(): JSX.Element {
         folderName={folderName}
         folderType={folderType}
         folderArtist={folderArtist}
+        onFolderArtworkChange={setFolderArtwork}
         onFolderNameChange={setFolderName}
         onFolderTypeChange={setFolderType}
         onFolderArtistChange={setFolderArtist}

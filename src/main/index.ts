@@ -1,7 +1,7 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { CreateFolderArgs } from '@shared/types'
 import Database from 'better-sqlite3'
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } from 'electron'
 import fs from 'node:fs'
 import path, { join } from 'node:path'
 import icon from '../../resources/icon.png?asset'
@@ -42,7 +42,15 @@ function createWindow(): void {
 
 // ─── App Ready ────────────────────────────────────────────────────────────────
 
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'localfile', privileges: { secure: true, supportFetchAPI: true } }
+])
+
 app.whenReady().then(() => {
+  protocol.handle('localfile', (request) => {
+    const filePath = decodeURIComponent(request.url.slice('localfile://'.length))
+    return net.fetch(`file://${filePath}`)
+  })
   electronApp.setAppUserModelId('com.electron')
 
   app.on('browser-window-created', (_, window) => {
@@ -166,6 +174,22 @@ ipcMain.handle('create-folder', async (_event, { name, type, artist }: CreateFol
 
   return manifest
 })
+
+ipcMain.handle(
+  'upload-artwork',
+  (_event, { folderPath, filePath }: { folderPath: string; filePath: string }) => {
+    const artworkDestination = path.join(folderPath, 'artwork.jpg')
+    fs.copyFileSync(filePath, artworkDestination)
+
+    const manifestPath = path.join(folderPath, '.manifest.json')
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
+    manifest.artwork = 'artwork.jpg'
+    manifest.updatedAt = new Date().toISOString()
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2))
+
+    return manifest
+  }
+)
 
 ipcMain.handle('get-folders', async () => {
   const config = JSON.parse(

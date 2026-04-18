@@ -32,6 +32,7 @@ export type CreateFolderFormProps = {
   onFolderNameChange: (value: string) => void
   onFolderTypeChange: (value: string) => void
   onFolderArtistChange: (value: string) => void
+  onFolderArtworkChange: (file: File | null) => void
   onCreateFolder: () => void
 }
 
