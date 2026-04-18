@@ -26,7 +26,7 @@ export function CreateFolderForm({
   return (
     <div className="flex items-center justify-center flex-col gap-2">
       <Dialog>
-        <DialogTrigger>Add New Folder</DialogTrigger>
+        <DialogTrigger render={<Button variant="outline">Add New Folder</Button>} />
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enter details for your album</DialogTitle>
