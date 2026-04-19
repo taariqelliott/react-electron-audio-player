@@ -15,11 +15,12 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem
 } from '@/components/ui/sidebar'
+import { useAlbumStore } from '@shared/store'
 import { Manifest } from '@shared/types'
-import { ChevronRightIcon, DiscIcon, Moon, MusicIcon, Sun } from 'lucide-react'
+import { AudioLines, ChevronRightIcon, Disc3, DiscIcon, Moon, Sun } from 'lucide-react'
 import { JSX } from 'react'
-import { useTheme } from './use-theme'
 import { Avatar, AvatarImage } from './ui/avatar'
+import { useTheme } from './use-theme'
 
 function ThemeToggle(): JSX.Element {
   const { theme, setTheme } = useTheme()
@@ -42,6 +43,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ albums, ...props }: AppSidebarProps): JSX.Element {
+  const activeAlbumName = useAlbumStore((state) => state.activeAlbumName)
+  const updateActiveAlbum = useAlbumStore((state) => state.updateActiveAlbum)
   return (
     <Sidebar variant="sidebar" {...props}>
       <SidebarHeader>
@@ -49,7 +52,7 @@ export function AppSidebar({ albums, ...props }: AppSidebarProps): JSX.Element {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg">
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
-                <MusicIcon className="size-4" />
+                <AudioLines className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">Audio Player v2</span>
@@ -65,7 +68,7 @@ export function AppSidebar({ albums, ...props }: AppSidebarProps): JSX.Element {
           <SidebarMenu>
             <Collapsible defaultOpen render={<SidebarMenuItem />}>
               <SidebarMenuButton>
-                <DiscIcon />
+                <Disc3 />
                 <span>Albums</span>
               </SidebarMenuButton>
               <CollapsibleTrigger
@@ -84,12 +87,20 @@ export function AppSidebar({ albums, ...props }: AppSidebarProps): JSX.Element {
                     </SidebarMenuSubItem>
                   ) : (
                     albums.map((album) => (
-                      <SidebarMenuSubItem key={album.folderPath}>
-                        <SidebarMenuSubButton className="cursor-pointer">
-                          <Avatar size="sm">
-                            <AvatarImage src={`localfile://${album.folderPath}/artwork.jpg`} />
-                          </Avatar>
-                          <p>{album.name}</p>
+                      <SidebarMenuSubItem
+                        key={album.folderPath}
+                        onClick={() => {
+                          updateActiveAlbum(`${album.name}-${album.createdAt}`)
+                        }}
+                      >
+                        <SidebarMenuSubButton className="cursor-pointer flex items-center justify-between flex-row">
+                          <div className="flex items-center justify-center gap-2">
+                            <Avatar size="sm">
+                              <AvatarImage src={`localfile://${album.folderPath}/artwork.jpg`} />
+                            </Avatar>
+                            <p>{album.name}</p>
+                          </div>
+                          {activeAlbumName === `${album.name}-${album.createdAt}` && <DiscIcon />}
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))

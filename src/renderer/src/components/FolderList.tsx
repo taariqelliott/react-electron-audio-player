@@ -1,6 +1,6 @@
 import { useAlbumStore } from '@shared/store'
 import { FolderListProps } from '@shared/types'
-import { Disc3 } from 'lucide-react'
+import { DiscIcon } from 'lucide-react'
 import { JSX, useEffect } from 'react'
 import { Badge } from './ui/badge'
 
@@ -38,7 +38,7 @@ export function FolderList({ folders }: FolderListProps): JSX.Element {
           <div className="flex flex-col gap-1 p-3">
             <div className="flex items-center justify-between">
               <p className="font-medium text-sm truncate">{name}</p>
-              <Disc3
+              <DiscIcon
                 className={activeAlbumName === `${name}-${createdAt}` ? 'opacity-100' : 'opacity-0'}
               />
             </div>

@@ -93,6 +93,7 @@ export function CreateFolderForm({
             <Input
               className="cursor-pointer"
               type="file"
+              accept="image/*"
               id="folderArtwork"
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 if (!e.target.files) return
