@@ -57,6 +57,17 @@ export default function App(): JSX.Element {
           <SidebarTrigger className="-ml-1" />
         </header>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 bg-primary-foreground">
+          <CreateFolderForm
+            folderName={folderName}
+            folderType={folderType}
+            folderArtist={folderArtist}
+            onFolderArtworkChange={setFolderArtwork}
+            onFolderNameChange={setFolderName}
+            onFolderTypeChange={setFolderType}
+            onFolderArtistChange={setFolderArtist}
+            onCreateFolder={createFolder}
+          />
+          <FolderList folders={folders.sort((a, b) => b.createdAt.localeCompare(a.createdAt))} />
           <p className="flex gap-1">
             Current time: <span className="tabular-nums">{currentPlaybackTime.toFixed(2)}s</span>
           </p>
@@ -80,17 +91,6 @@ export default function App(): JSX.Element {
               style={{ width: `${(currentPlaybackTime / totalTrackDuration) * 100}%` }}
             />
           </div>
-          <CreateFolderForm
-            folderName={folderName}
-            folderType={folderType}
-            folderArtist={folderArtist}
-            onFolderArtworkChange={setFolderArtwork}
-            onFolderNameChange={setFolderName}
-            onFolderTypeChange={setFolderType}
-            onFolderArtistChange={setFolderArtist}
-            onCreateFolder={createFolder}
-          />
-          <FolderList folders={folders} />
         </div>
       </SidebarInset>
     </SidebarProvider>

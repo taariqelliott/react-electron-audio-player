@@ -1,5 +1,5 @@
 import { CreateFolderFormProps } from '@shared/types'
-import { InfoIcon } from 'lucide-react'
+import { FolderPlus, InfoIcon } from 'lucide-react'
 import { ChangeEvent, JSX, useRef, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 import { Button } from './ui/button'
@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -48,38 +49,49 @@ export function CreateFolderForm({
   }
 
   const { theme } = useTheme()
-  console.log(theme)
 
   return (
-    <div className="flex items-center justify-center flex-col gap-2">
+    <div className="flex items-center justify-center flex-col gap-2 absolute top-2 right-2">
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger render={<Button variant="outline">Add New Folder</Button>} />
+        <DialogTrigger
+          render={
+            <Button variant="outline">
+              <FolderPlus />
+            </Button>
+          }
+        />
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enter details for your album</DialogTitle>
-            <Label htmlFor="folderType">Folder Type</Label>
+            <DialogTitle className="mb-4">Add a new release</DialogTitle>
+            <Label htmlFor="folderType">Release Type</Label>
+            <DialogDescription className="-my-1">
+              e.g. Album, EP, Single, Mixtape, Compilation
+            </DialogDescription>
             <Input
               type="text"
               id="folderType"
               value={folderType}
               onChange={(e: ChangeEvent<HTMLInputElement>) => onFolderTypeChange(e.target.value)}
             />
-            <Label htmlFor="folderName">Folder Name</Label>
+            <Label htmlFor="folderName">Release Title</Label>
             <Input
               type="text"
               id="folderName"
               value={folderName}
               onChange={(e: ChangeEvent<HTMLInputElement>) => onFolderNameChange(e.target.value)}
             />
-            <Label htmlFor="folderArtist">Folder Artist</Label>
+            <Label htmlFor="folderArtist">Artist</Label>
             <Input
               type="text"
               id="folderArtist"
               value={folderArtist}
               onChange={(e: ChangeEvent<HTMLInputElement>) => onFolderArtistChange(e.target.value)}
             />
-            <Label htmlFor="folderArtwork">Folder Artwork</Label>
+            <Label htmlFor="folderArtwork" className="cursor-pointer">
+              Artwork
+            </Label>
             <Input
+              className="cursor-pointer"
               type="file"
               id="folderArtwork"
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -104,7 +116,7 @@ export function CreateFolderForm({
           </DialogHeader>
           <DialogFooter>
             <DialogClose render={<Button variant="outline">Cancel</Button>} />
-            <Button onClick={handleCreate}>Create Folder</Button>
+            <Button onClick={handleCreate}>Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

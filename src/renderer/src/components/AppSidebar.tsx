@@ -19,6 +19,7 @@ import { Manifest } from '@shared/types'
 import { ChevronRightIcon, DiscIcon, Moon, MusicIcon, Sun } from 'lucide-react'
 import { JSX } from 'react'
 import { useTheme } from './use-theme'
+import { Avatar, AvatarImage } from './ui/avatar'
 
 function ThemeToggle(): JSX.Element {
   const { theme, setTheme } = useTheme()
@@ -47,7 +48,7 @@ export function AppSidebar({ albums, ...props }: AppSidebarProps): JSX.Element {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg text-sidebar-primary-foreground">
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
                 <MusicIcon className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -85,6 +86,9 @@ export function AppSidebar({ albums, ...props }: AppSidebarProps): JSX.Element {
                     albums.map((album) => (
                       <SidebarMenuSubItem key={album.folderPath}>
                         <SidebarMenuSubButton className="cursor-pointer">
+                          <Avatar size="sm">
+                            <AvatarImage src={`localfile://${album.folderPath}/artwork.jpg`} />
+                          </Avatar>
                           <p>{album.name}</p>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>

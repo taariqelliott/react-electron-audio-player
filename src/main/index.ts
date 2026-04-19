@@ -20,7 +20,9 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       nodeIntegration: true
-    }
+    },
+    minWidth: 900,
+    minHeight: 700
   })
 
   mainWindow.on('ready-to-show', () => {

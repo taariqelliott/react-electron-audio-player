@@ -12,13 +12,13 @@ export function SetupScreen({
       <div className="flex flex-col items-center justify-center gap-3">
         {libraryRootIsNull ? (
           <>
-            <Music2 size={48} className="text-purple-600 dark:text-purple-300" />
-            <p className="text-purple-600 dark:text-purple-300">Choose where to store your music</p>
+            <Music2 size={48} className="text-blue-600 dark:text-blue-300" />
+            <p className="text-blue-600 dark:text-blue-300">Choose where to store your music</p>
           </>
         ) : (
           <>
-            <FolderX size={48} className="text-purple-600 dark:text-purple-300" />
-            <p className="text-purple-600 dark:text-purple-300">Music folder could not be found</p>
+            <FolderX size={48} className="text-blue-600 dark:text-blue-300" />
+            <p className="text-blue-600 dark:text-blue-300">Music folder could not be found</p>
           </>
         )}
         <Button variant="default" onClick={onSelectLibraryRoot}>
