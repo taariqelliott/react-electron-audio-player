@@ -3,6 +3,7 @@ import { FolderListProps } from '@shared/types'
 import { DiscIcon } from 'lucide-react'
 import { JSX, useEffect } from 'react'
 import { Badge } from './ui/badge'
+import { Card, CardContent } from './ui/card'
 
 export function FolderList({ folders }: FolderListProps): JSX.Element {
   const activeAlbumName = useAlbumStore((state) => state.activeAlbumName)
@@ -16,39 +17,41 @@ export function FolderList({ folders }: FolderListProps): JSX.Element {
   }, [folders, activeAlbumName, updateActiveAlbum])
 
   return (
-    <div className="flex flex-wrap gap-4 p-4">
+    <div className="flex flex-wrap gap-4 p-4 justify-center">
       {folders.map(({ artist, artwork, createdAt, name, totalTracks, folderPath, type }) => (
-        <div
-          onClick={() => {
-            updateActiveAlbum(`${name}-${createdAt}`)
-          }}
-          className="flex flex-col rounded-lg overflow-hidden bg-primary text-primary-foreground w-48 cursor-pointer hover:opacity-90 transition-opacity"
+        <Card
+          onClick={() => updateActiveAlbum(`${name}-${createdAt}`)}
           key={`${artist}-${name}-${createdAt}`}
+          className="relative w-48 h-48 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity bg-primary border-none"
         >
-          {artwork ? (
-            <img
-              src={`localfile://${folderPath}/artwork.jpg`}
-              className="w-full h-48 object-cover"
-            />
-          ) : (
-            <div className="w-full h-48 bg-primary-foreground/10 flex items-center justify-center">
-              <p className="text-primary-foreground/40 text-xs">No artwork</p>
-            </div>
-          )}
-          <div className="flex flex-col gap-1 p-3">
-            <div className="flex items-center justify-between">
-              <p className="font-medium text-sm truncate">{name}</p>
-              <DiscIcon
-                className={activeAlbumName === `${name}-${createdAt}` ? 'opacity-100' : 'opacity-0'}
+          <CardContent className="p-0 w-full h-full">
+            {artwork ? (
+              <img
+                src={`localfile://${folderPath}/artwork.jpg`}
+                className="absolute inset-0 w-full h-full object-cover"
               />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <p className="text-primary-foreground/40 text-xs">No artwork</p>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/15" />
+            <div className="absolute inset-0 flex flex-col justify-between p-3">
+              <div className="flex items-center justify-between">
+                <Badge variant="secondary">{type}</Badge>
+                <DiscIcon
+                  size={16}
+                  className={`text-white ${activeAlbumName === `${name}-${createdAt}` ? 'opacity-100' : 'opacity-0'}`}
+                />
+              </div>
+              <div className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 p-2 bg-black/40 backdrop-blur-md">
+                <p className="text-white font-medium text-sm truncate">{name}</p>
+                <p className="text-white/60 text-xs truncate">{artist}</p>
+                <p className="text-white/40 text-xs">{totalTracks} tracks</p>
+              </div>
             </div>
-            <p className="text-xs text-primary-foreground/60 truncate">{artist}</p>
-            <div className="flex items-center justify-between mt-1">
-              <Badge variant="secondary">{type}</Badge>
-              <p className="text-xs text-primary-foreground/40">{totalTracks} tracks</p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       ))}
     </div>
   )

@@ -5,6 +5,7 @@ import { CreateFolderForm } from './components/CreateFolderForm'
 import { FolderList } from './components/FolderList'
 import { LoadingScreen } from './components/LoadingScreen'
 import { SetupScreen } from './components/SetupScreen'
+import Test from './components/Test'
 import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './components/ui/sidebar'
@@ -54,7 +55,7 @@ export default function App(): JSX.Element {
       <AppSidebar albums={folders} />
       <SidebarInset className="bg-primary-foreground">
         <header className="flex h-12 shrink-0 items-center gap-2 px-4 bg-primary-foreground">
-          <SidebarTrigger className="-ml-1" />
+          <SidebarTrigger className="-ml-2" />
         </header>
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 bg-primary-foreground">
           <CreateFolderForm
@@ -67,6 +68,7 @@ export default function App(): JSX.Element {
             onFolderArtistChange={setFolderArtist}
             onCreateFolder={createFolder}
           />
+          <Test />
           <FolderList folders={folders.sort((a, b) => b.createdAt.localeCompare(a.createdAt))} />
           <p className="flex gap-1">
             Current time: <span className="tabular-nums">{currentPlaybackTime.toFixed(2)}s</span>
