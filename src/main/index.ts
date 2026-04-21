@@ -2,6 +2,7 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { CreateFolderArgs } from '@shared/types'
 import Database from 'better-sqlite3'
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } from 'electron'
+import { parseFile } from 'music-metadata'
 import fs from 'node:fs'
 import path, { join } from 'node:path'
 import icon from '../../resources/icon.png?asset'
@@ -216,6 +217,50 @@ ipcMain.handle('get-folders', async () => {
 })
 
 // ─── Cleanup ──────────────────────────────────────────────────────────────────
+
+app.on('browser-window-created', async () => {
+  const dialogResult = await dialog.showOpenDialog({
+    properties: ['openDirectory', 'multiSelections', 'openFile']
+  })
+
+  const config = JSON.parse(
+    fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf-8')
+  )
+  const libRoot = config.libraryRoot
+
+  const getAudioMetadata = async (filePath: string): Promise<void> => {
+    try {
+      const metadata = await parseFile(filePath)
+      console.log(metadata)
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Error parsing metadata:', error.message)
+      }
+    }
+  }
+
+  if (dialogResult.filePaths.length > 1) {
+    for (let idx = 0; idx < dialogResult.filePaths.length; idx++) {
+      const fileToCopy = dialogResult.filePaths[idx]
+      fs.copyFileSync(
+        fileToCopy,
+        `${libRoot}/${path.basename(fileToCopy)}`,
+        fs.constants.COPYFILE_EXCL
+      )
+      console.log(dialogResult.filePaths[idx])
+      getAudioMetadata(fileToCopy)
+    }
+  } else {
+    const fileToCopy = dialogResult.filePaths[0]
+    fs.copyFileSync(
+      fileToCopy,
+      `${libRoot}/${path.basename(fileToCopy)}`,
+      fs.constants.COPYFILE_EXCL
+    )
+    console.log(dialogResult.filePaths[0])
+    getAudioMetadata(fileToCopy)
+  }
+})
 
 app.on('window-all-closed', () => {
   db.close()
