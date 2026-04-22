@@ -219,47 +219,49 @@ ipcMain.handle('get-folders', async () => {
 // ─── Cleanup ──────────────────────────────────────────────────────────────────
 
 app.on('browser-window-created', async () => {
-  const dialogResult = await dialog.showOpenDialog({
-    properties: ['openDirectory', 'multiSelections', 'openFile']
-  })
+  setTimeout(async () => {
+    const dialogResult = await dialog.showOpenDialog({
+      properties: ['openDirectory', 'multiSelections', 'openFile']
+    })
 
-  const config = JSON.parse(
-    fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf-8')
-  )
-  const libRoot = config.libraryRoot
+    const config = JSON.parse(
+      fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf-8')
+    )
+    const libRoot = config.libraryRoot
 
-  const getAudioMetadata = async (filePath: string): Promise<void> => {
-    try {
-      const metadata = await parseFile(filePath)
-      console.log(metadata)
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error('Error parsing metadata:', error.message)
+    const getAudioMetadata = async (filePath: string): Promise<void> => {
+      try {
+        const metadata = await parseFile(filePath)
+        console.log(metadata)
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error('Error parsing metadata:', error.message)
+        }
       }
     }
-  }
 
-  if (dialogResult.filePaths.length > 1) {
-    for (let idx = 0; idx < dialogResult.filePaths.length; idx++) {
-      const fileToCopy = dialogResult.filePaths[idx]
+    if (dialogResult.filePaths.length > 1) {
+      for (let idx = 0; idx < dialogResult.filePaths.length; idx++) {
+        const fileToCopy = dialogResult.filePaths[idx]
+        fs.copyFileSync(
+          fileToCopy,
+          `${libRoot}/${path.basename(fileToCopy)}`,
+          fs.constants.COPYFILE_EXCL
+        )
+        console.log(dialogResult.filePaths[idx])
+        getAudioMetadata(fileToCopy)
+      }
+    } else {
+      const fileToCopy = dialogResult.filePaths[0]
       fs.copyFileSync(
         fileToCopy,
         `${libRoot}/${path.basename(fileToCopy)}`,
         fs.constants.COPYFILE_EXCL
       )
-      console.log(dialogResult.filePaths[idx])
+      console.log(dialogResult.filePaths[0])
       getAudioMetadata(fileToCopy)
     }
-  } else {
-    const fileToCopy = dialogResult.filePaths[0]
-    fs.copyFileSync(
-      fileToCopy,
-      `${libRoot}/${path.basename(fileToCopy)}`,
-      fs.constants.COPYFILE_EXCL
-    )
-    console.log(dialogResult.filePaths[0])
-    getAudioMetadata(fileToCopy)
-  }
+  }, 500)
 })
 
 app.on('window-all-closed', () => {
