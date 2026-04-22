@@ -3,6 +3,7 @@ import { CreateFolderArgs } from '@shared/types'
 import Database from 'better-sqlite3'
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } from 'electron'
 import { parseFile } from 'music-metadata'
+import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path, { join } from 'node:path'
 import icon from '../../resources/icon.png?asset'
@@ -151,7 +152,7 @@ ipcMain.handle('create-folder', async (_event, { name, type, artist }: CreateFol
     fs.readFileSync(path.join(app.getPath('userData'), 'config.json'), 'utf-8')
   )
 
-  const folderPath = path.join(config.libraryRoot, name)
+  const folderPath = path.join(config.libraryRoot, `${name}-${randomUUID()}`)
   fs.mkdirSync(folderPath, { recursive: true })
 
   const manifest = {
