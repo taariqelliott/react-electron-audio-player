@@ -11,8 +11,13 @@ export function FolderList({ folders }: FolderListProps): JSX.Element {
 
   useEffect(() => {
     if (!folders || folders.length === 0) return
-    if (activeAlbumName === '') {
+    if (activeAlbumName === '' || folders.length === 0) {
       updateActiveAlbum(`${folders![0].name}-${folders![0].createdAt}`)
+    }
+    for (let i = 0; i < folders.length; i++) {
+      if (activeAlbumName === `${folders[i].name}-${folders[i].createdAt}`) {
+        console.log(folders[i])
+      }
     }
   }, [folders, activeAlbumName, updateActiveAlbum])
 
@@ -22,7 +27,7 @@ export function FolderList({ folders }: FolderListProps): JSX.Element {
         <Card
           onClick={() => updateActiveAlbum(`${name}-${createdAt}`)}
           key={`${artist}-${name}-${createdAt}`}
-          className="relative w-48 h-48 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity bg-primary border-none"
+          className="group relative w-48 h-48 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity bg-primary border-none"
         >
           <CardContent className="p-0 w-full h-full">
             {artwork ? (
@@ -36,7 +41,7 @@ export function FolderList({ folders }: FolderListProps): JSX.Element {
               </div>
             )}
             <div className="absolute inset-0 bg-black/15" />
-            <div className="absolute inset-0 flex flex-col justify-between p-3">
+            <div className="absolute inset-0 flex flex-col justify-between p-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
               <div className="flex items-center justify-between">
                 <Badge variant="secondary">{type}</Badge>
                 <DiscIcon
@@ -44,11 +49,11 @@ export function FolderList({ folders }: FolderListProps): JSX.Element {
                   className={`text-white ${activeAlbumName === `${name}-${createdAt}` ? 'opacity-100' : 'opacity-0'}`}
                 />
               </div>
-              <div className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 p-2 bg-black/40 backdrop-blur-md">
-                <p className="text-white font-medium text-sm truncate">{name}</p>
-                <p className="text-white/60 text-xs truncate">{artist}</p>
-                <p className="text-white/40 text-xs">{totalTracks} tracks</p>
-              </div>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-0.5 p-2 bg-black/40 backdrop-blur-md opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+              <p className="text-white font-medium text-sm truncate">{name}</p>
+              <p className="text-white/60 text-xs truncate">{artist}</p>
+              <p className="text-white/40 text-xs">{totalTracks} tracks</p>
             </div>
           </CardContent>
         </Card>
