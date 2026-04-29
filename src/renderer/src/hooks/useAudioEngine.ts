@@ -4,6 +4,7 @@ export function useAudioEngine(): {
   isPlaying: boolean
   currentPlaybackTime: number
   totalTrackDuration: number
+  currentTrackName: string | null
   handleFileUpload: (event: ChangeEvent<HTMLInputElement>) => Promise<void>
   play: () => Promise<void>
   pause: () => void
@@ -20,6 +21,7 @@ export function useAudioEngine(): {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0)
   const [totalTrackDuration, setTotalTrackDuration] = useState(0)
+  const [currentTrackName, setCurrentTrackName] = useState<string | null>(null)
 
   const getOrCreateAudioContext = (): AudioContext => {
     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
@@ -53,6 +55,7 @@ export function useAudioEngine(): {
     if (animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current)
 
     const file = event.target.files[0]
+    setCurrentTrackName(file.name.replace(/\.[^/.]+$/, ''))
     const rawAudioBytes = await file.arrayBuffer()
     decodedAudioBufferRef.current = await audioContextRef.current.decodeAudioData(rawAudioBytes)
     setTotalTrackDuration(decodedAudioBufferRef.current.duration)
@@ -115,6 +118,7 @@ export function useAudioEngine(): {
     isPlaying,
     currentPlaybackTime,
     totalTrackDuration,
+    currentTrackName,
     handleFileUpload,
     play,
     pause,

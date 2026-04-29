@@ -12,11 +12,18 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from './components/ui/s
 import { useAudioEngine } from './hooks/useAudioEngine'
 import { useLibrary } from './hooks/useLibrary'
 
+const formatTime = (seconds: number): string => {
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
 export default function App(): JSX.Element {
   const {
     isPlaying,
     currentPlaybackTime,
     totalTrackDuration,
+    currentTrackName,
     handleFileUpload,
     play,
     pause,
@@ -50,14 +57,18 @@ export default function App(): JSX.Element {
     )
   }
 
+  const progress = totalTrackDuration > 0 ? (currentPlaybackTime / totalTrackDuration) * 100 : 0
+
   return (
     <SidebarProvider>
       <AppSidebar albums={folders} />
-      <SidebarInset className="">
+      <SidebarInset className="flex flex-col overflow-hidden">
         <header className="flex h-12 shrink-0 items-center gap-2 px-4">
           <SidebarTrigger className="-ml-2" />
         </header>
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
+
+        {/* scrollable content */}
+        <div className="flex-1 overflow-y-auto flex flex-col items-center gap-4 p-4 pb-0">
           <CreateFolderForm
             folderName={folderName}
             folderType={folderType}
@@ -70,28 +81,54 @@ export default function App(): JSX.Element {
           />
           <ActiveFolder folders={folders} />
           <FolderList folders={folders.sort((a, b) => b.createdAt.localeCompare(a.createdAt))} />
-          <p className="flex gap-1">
-            Current time: <span className="tabular-nums">{currentPlaybackTime.toFixed(2)}s</span>
-          </p>
-          <section className="flex gap-2">
-            <Button className="w-18" onClick={isPlaying ? pause : play} variant="default">
-              {isPlaying ? <Pause /> : <Play />}
-            </Button>
-            <Button className="w-18" onClick={stop} variant="default">
-              <Square />
-            </Button>
-          </section>
-          <Input
-            type="file"
-            accept="audio/*"
-            onChange={handleFileUpload}
-            className="my-2 max-w-3/4 hover:opacity-85 transition-opacity duration-200 cursor-pointer"
-          />
-          <div className="w-3/4 relative bg-primary h-6 rounded overflow-hidden">
+        </div>
+
+        {/* Apple Music-style bottom player bar */}
+        <div className="shrink-0 border-t border-border/40 bg-background/60 backdrop-blur-xl">
+          {/* thin progress bar */}
+          <div className="w-full h-[3px] bg-muted">
             <div
-              className="absolute bg-foreground h-6"
-              style={{ width: `${(currentPlaybackTime / totalTrackDuration) * 100}%` }}
+              className="h-full bg-primary transition-none"
+              style={{ width: `${progress}%` }}
             />
+          </div>
+
+          <div className="flex items-center px-6 py-3 gap-4">
+            {/* track name + time */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate leading-tight">
+                {currentTrackName ?? '—'}
+              </p>
+              <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
+                {formatTime(currentPlaybackTime)}
+                <span className="text-muted-foreground/50 mx-1">/</span>
+                {formatTime(totalTrackDuration)}
+              </p>
+            </div>
+
+            {/* controls */}
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={stop}>
+                <Square size={14} />
+              </Button>
+              <Button
+                size="icon"
+                className="h-9 w-9 rounded-full"
+                onClick={isPlaying ? pause : play}
+              >
+                {isPlaying ? <Pause size={15} /> : <Play size={15} />}
+              </Button>
+            </div>
+
+            {/* file input */}
+            <div className="flex-1 flex justify-end">
+              <Input
+                type="file"
+                accept="audio/*"
+                onChange={handleFileUpload}
+                className="max-w-48 text-xs cursor-pointer hover:opacity-80 transition-opacity duration-150"
+              />
+            </div>
           </div>
         </div>
       </SidebarInset>
