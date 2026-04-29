@@ -11,15 +11,10 @@ export function FolderList({ folders }: FolderListProps): JSX.Element {
 
   useEffect(() => {
     if (!folders || folders.length === 0) return
-    if (activeAlbumName === '' || folders.length === 0) {
-      updateActiveAlbum(`${folders![0].name}-${folders![0].createdAt}`)
+    if (useAlbumStore.getState().activeAlbumName === '') {
+      updateActiveAlbum(`${folders[0].name}-${folders[0].createdAt}`)
     }
-    for (let i = 0; i < folders.length; i++) {
-      if (activeAlbumName === `${folders[i].name}-${folders[i].createdAt}`) {
-        console.log(folders[i])
-      }
-    }
-  }, [folders, activeAlbumName, updateActiveAlbum])
+  }, [folders, updateActiveAlbum])
 
   return (
     <div className="flex flex-wrap gap-4 p-4 justify-center">

@@ -1,15 +1,22 @@
-import { useLibrary } from '@/hooks/useLibrary'
 import { useAlbumStore } from '@shared/store'
-import { JSX } from 'react'
+import { Manifest } from '@shared/types'
+import { JSX, useEffect } from 'react'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
 
-export default function Test(): JSX.Element {
+export default function ActiveFolder({ folders }: { folders: Manifest[] }): JSX.Element {
   const activeAlbumName = useAlbumStore((state) => state.activeAlbumName)
-  const { folders } = useLibrary()
+
   const activeFolder =
     folders.find((folder) => `${folder.name}-${folder.createdAt}` === activeAlbumName) ?? null
+
+  useEffect(() => {
+    if (!activeFolder) return
+    console.log('Active folder:', activeFolder)
+  }, [activeFolder, folders])
+
   if (!activeFolder) return <div />
+
   const { artist, folderPath, name, type } = activeFolder
 
   return (

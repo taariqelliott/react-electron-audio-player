@@ -1,11 +1,11 @@
 import { Pause, Play, Square } from 'lucide-react'
 import { JSX } from 'react'
+import ActiveFolder from './components/ActiveFolder'
 import { AppSidebar } from './components/AppSidebar'
 import { CreateFolderForm } from './components/CreateFolderForm'
 import { FolderList } from './components/FolderList'
 import { LoadingScreen } from './components/LoadingScreen'
 import { SetupScreen } from './components/SetupScreen'
-import Test from './components/Test'
 import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './components/ui/sidebar'
@@ -68,7 +68,7 @@ export default function App(): JSX.Element {
             onFolderArtistChange={setFolderArtist}
             onCreateFolder={createFolder}
           />
-          <Test />
+          <ActiveFolder folders={folders} />
           <FolderList folders={folders.sort((a, b) => b.createdAt.localeCompare(a.createdAt))} />
           <p className="flex gap-1">
             Current time: <span className="tabular-nums">{currentPlaybackTime.toFixed(2)}s</span>
