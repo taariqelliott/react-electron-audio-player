@@ -66,8 +66,6 @@ export default function App(): JSX.Element {
         <header className="flex h-12 shrink-0 items-center gap-2 px-4">
           <SidebarTrigger className="-ml-2" />
         </header>
-
-        {/* scrollable content */}
         <div className="flex-1 overflow-y-auto flex flex-col items-center gap-4 p-4 pb-0">
           <CreateFolderForm
             folderName={folderName}
@@ -82,19 +80,11 @@ export default function App(): JSX.Element {
           <ActiveFolder folders={folders} />
           <FolderList folders={folders.sort((a, b) => b.createdAt.localeCompare(a.createdAt))} />
         </div>
-
-        {/* Apple Music-style bottom player bar */}
         <div className="shrink-0 border-t border-border/40 bg-background/60 backdrop-blur-xl">
-          {/* thin progress bar */}
           <div className="w-full h-[3px] bg-muted">
-            <div
-              className="h-full bg-primary transition-none"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="h-full bg-primary transition-none" style={{ width: `${progress}%` }} />
           </div>
-
           <div className="flex items-center px-6 py-3 gap-4">
-            {/* track name + time */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate leading-tight">
                 {currentTrackName ?? '—'}
@@ -105,8 +95,6 @@ export default function App(): JSX.Element {
                 {formatTime(totalTrackDuration)}
               </p>
             </div>
-
-            {/* controls */}
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={stop}>
                 <Square size={14} />
@@ -119,8 +107,6 @@ export default function App(): JSX.Element {
                 {isPlaying ? <Pause size={15} /> : <Play size={15} />}
               </Button>
             </div>
-
-            {/* file input */}
             <div className="flex-1 flex justify-end">
               <Input
                 type="file"
