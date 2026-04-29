@@ -53,11 +53,11 @@ export default function App(): JSX.Element {
   return (
     <SidebarProvider>
       <AppSidebar albums={folders} />
-      <SidebarInset className="bg-primary-foreground">
-        <header className="flex h-12 shrink-0 items-center gap-2 px-4 bg-primary-foreground">
+      <SidebarInset className="">
+        <header className="flex h-12 shrink-0 items-center gap-2 px-4">
           <SidebarTrigger className="-ml-2" />
         </header>
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 bg-primary-foreground">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4">
           <CreateFolderForm
             folderName={folderName}
             folderType={folderType}
@@ -87,9 +87,9 @@ export default function App(): JSX.Element {
             onChange={handleFileUpload}
             className="my-2 max-w-3/4 hover:opacity-85 transition-opacity duration-200 cursor-pointer"
           />
-          <div className="w-3/4 relative bg-blue-600 h-6 rounded overflow-hidden">
+          <div className="w-3/4 relative bg-primary h-6 rounded overflow-hidden">
             <div
-              className="absolute bg-amber-200 h-6"
+              className="absolute bg-foreground h-6"
               style={{ width: `${(currentPlaybackTime / totalTrackDuration) * 100}%` }}
             />
           </div>

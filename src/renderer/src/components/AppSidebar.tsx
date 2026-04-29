@@ -116,7 +116,7 @@ export function AppSidebar({ albums, ...props }: AppSidebarProps): JSX.Element {
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="flex items-center gap-2 px-2 py-1.5">
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-white text-xs font-bold">
                 TK
               </div>
               <span className="truncate text-sm font-medium">taariqkwame</span>
