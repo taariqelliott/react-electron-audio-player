@@ -43,8 +43,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ albums, ...props }: AppSidebarProps): JSX.Element {
-  const activeAlbumName = useAlbumStore((state) => state.activeAlbumName)
-  const updateActiveAlbum = useAlbumStore((state) => state.updateActiveAlbum)
+  const activeFolder = useAlbumStore((state) => state.activeFolder)
+  const updateActiveFolder = useAlbumStore((state) => state.updateActiveFolder)
   return (
     <Sidebar variant="sidebar" {...props}>
       <SidebarHeader>
@@ -89,9 +89,7 @@ export function AppSidebar({ albums, ...props }: AppSidebarProps): JSX.Element {
                     albums.map((album) => (
                       <SidebarMenuSubItem
                         key={album.folderPath}
-                        onClick={() => {
-                          updateActiveAlbum(`${album.name}-${album.createdAt}`)
-                        }}
+                        onClick={() => updateActiveFolder(album)}
                       >
                         <SidebarMenuSubButton className="cursor-pointer flex items-center justify-between flex-row">
                           <div className="flex items-center justify-center gap-2">
@@ -100,7 +98,7 @@ export function AppSidebar({ albums, ...props }: AppSidebarProps): JSX.Element {
                             </Avatar>
                             <p>{album.name}</p>
                           </div>
-                          {activeAlbumName === `${album.name}-${album.createdAt}` && <DiscIcon />}
+                          {activeFolder?.folderPath === album.folderPath && <DiscIcon />}
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))

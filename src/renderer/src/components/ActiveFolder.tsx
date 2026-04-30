@@ -1,5 +1,4 @@
 import { useAlbumStore } from '@shared/store'
-import { Manifest } from '@shared/types'
 import { JSX } from 'react'
 import { Badge } from './ui/badge'
 
@@ -23,11 +22,8 @@ function EqualizerBars(): JSX.Element {
   )
 }
 
-export default function ActiveFolder({ folders }: { folders: Manifest[] }): JSX.Element {
-  const activeAlbumName = useAlbumStore((state) => state.activeAlbumName)
-
-  const activeFolder =
-    folders.find((folder) => `${folder.name}-${folder.createdAt}` === activeAlbumName) ?? null
+export default function ActiveFolder(): JSX.Element {
+  const activeFolder = useAlbumStore((state) => state.activeFolder)
 
   if (!activeFolder) return <div />
 

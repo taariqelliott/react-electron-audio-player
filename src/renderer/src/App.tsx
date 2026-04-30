@@ -77,7 +77,7 @@ export default function App(): JSX.Element {
             onFolderArtistChange={setFolderArtist}
             onCreateFolder={createFolder}
           />
-          <ActiveFolder folders={folders} />
+          <ActiveFolder />
           <FolderList folders={folders.sort((a, b) => b.createdAt.localeCompare(a.createdAt))} />
         </div>
         <div className="shrink-0 border-t border-border/40 bg-background/60 backdrop-blur-xl">

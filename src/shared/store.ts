@@ -1,14 +1,15 @@
+import { Manifest } from './types'
 import { create } from 'zustand'
 
 type State = {
-  activeAlbumName: string
+  activeFolder: Manifest | null
 }
 
 type Action = {
-  updateActiveAlbum: (activeAlbumName: State['activeAlbumName']) => void
+  updateActiveFolder: (activeFolder: Manifest | null) => void
 }
 
 export const useAlbumStore = create<State & Action>((set) => ({
-  activeAlbumName: '',
-  updateActiveAlbum: (activeAlbumName) => set(() => ({ activeAlbumName: activeAlbumName }))
+  activeFolder: null,
+  updateActiveFolder: (activeFolder) => set(() => ({ activeFolder }))
 }))
