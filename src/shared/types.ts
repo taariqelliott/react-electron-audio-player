@@ -3,21 +3,21 @@ export type AppConfig = {
 }
 
 export type CreateFolderArgs = {
+  artist: string
   name: string
   type: string
-  artist: string
 }
 
 export type Manifest = {
-  name: string
-  type: string
   artist: string
   artwork: string
+  createdAt: string
   folderPath: string
+  name: string
+  type: string
+  updatedAt: string
   totalTracks: number
   tracks: string[]
-  createdAt: string
-  updatedAt: string
 }
 
 export type SetupScreenProps = {
@@ -26,14 +26,14 @@ export type SetupScreenProps = {
 }
 
 export type CreateFolderFormProps = {
+  folderArtist: string
   folderName: string
   folderType: string
-  folderArtist: string
-  onFolderNameChange: (value: string) => void
-  onFolderTypeChange: (value: string) => void
+  onCreateFolder: () => void
   onFolderArtistChange: (value: string) => void
   onFolderArtworkChange: (file: File | null) => void
-  onCreateFolder: () => void
+  onFolderNameChange: (value: string) => void
+  onFolderTypeChange: (value: string) => void
 }
 
 export type FolderListProps = {
