@@ -1,11 +1,28 @@
 export type AppConfig = {
   libraryRoot: string | null
+  username?: string
+  avatarPath?: string | null
+}
+
+export type UpdateProfileArgs = {
+  username: string
+  avatarSourcePath?: string
 }
 
 export type CreateFolderArgs = {
   artist: string
   name: string
   type: string
+}
+
+export type TrackEntry = {
+  filename: string
+  title: string
+  artist: string
+  duration: number
+  trackOrder: number
+  addedAt: string
+  missing?: boolean
 }
 
 export type Manifest = {
@@ -17,7 +34,31 @@ export type Manifest = {
   type: string
   updatedAt: string
   totalTracks: number
-  tracks: string[]
+  tracks: TrackEntry[]
+}
+
+export type UpdateTrackArgs = {
+  folderPath: string
+  filename: string
+  title: string
+  artist: string
+  newFilename?: string
+}
+
+export type UpdateFolderArgs = {
+  folderPath: string
+  name: string
+  artist: string
+  type: string
+}
+
+export type SearchResult = {
+  kind: 'folder' | 'track'
+  folderPath: string
+  folderName: string
+  title: string
+  artist: string
+  filename: string | null
 }
 
 export type SetupScreenProps = {

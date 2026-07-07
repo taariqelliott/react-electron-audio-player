@@ -1,5 +1,7 @@
-import { Pause, Play, Square } from 'lucide-react'
-import { JSX } from 'react'
+import { useAlbumStore } from '@shared/store'
+import { TrackEntry } from '@shared/types'
+import { Pause, Play, Square, Volume1, Volume2, VolumeX } from 'lucide-react'
+import { JSX, useState } from 'react'
 import ActiveFolder from './components/ActiveFolder'
 import { AppSidebar } from './components/AppSidebar'
 import { CreateFolderForm } from './components/CreateFolderForm'
@@ -9,6 +11,9 @@ import { SetupScreen } from './components/SetupScreen'
 import { Button } from './components/ui/button'
 import { Input } from './components/ui/input'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './components/ui/sidebar'
+import { Skeleton } from './components/ui/skeleton'
+import { Slider } from './components/ui/slider'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './components/ui/tooltip'
 import { useAudioEngine } from './hooks/useAudioEngine'
 import { useLibrary } from './hooks/useLibrary'
 
@@ -18,22 +23,57 @@ const formatTime = (seconds: number): string => {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+const toNumber = (value: number | readonly number[]): number =>
+  Array.isArray(value) ? value[0] : (value as number)
+
+type SeekSliderProps = {
+  currentTime: number
+  duration: number
+  onSeek: (seconds: number) => void
+}
+
+function SeekSlider({ currentTime, duration, onSeek }: SeekSliderProps): JSX.Element {
+  const [scrubValue, setScrubValue] = useState<number | null>(null)
+
+  return (
+    <Slider
+      value={scrubValue ?? Math.min(currentTime, duration)}
+      min={0}
+      max={duration > 0 ? duration : 1}
+      step={0.1}
+      disabled={duration === 0}
+      onValueChange={(value) => setScrubValue(toNumber(value))}
+      onValueCommitted={(value) => {
+        onSeek(toNumber(value))
+        setScrubValue(null)
+      }}
+      aria-label="Seek"
+    />
+  )
+}
+
 export default function App(): JSX.Element {
   const {
     isPlaying,
     currentPlaybackTime,
     totalTrackDuration,
     currentTrackName,
+    volume,
     handleFileUpload,
+    loadTrack,
     play,
     pause,
-    stop
+    stop,
+    seek,
+    setVolume,
+    getAnalyser
   } = useAudioEngine()
 
   const {
     appConfig,
     libraryRootExists,
     isLoadingConfig,
+    isLoadingFolders,
     folders,
     folderName,
     folderType,
@@ -43,8 +83,14 @@ export default function App(): JSX.Element {
     setFolderArtist,
     setFolderArtwork,
     selectLibraryRoot,
-    createFolder
+    createFolder,
+    applyLibraryRoot,
+    applyConfig
   } = useLibrary()
+
+  const activeFolder = useAlbumStore((state) => state.activeFolder)
+  const setActiveTrackFilename = useAlbumStore((state) => state.setActiveTrackFilename)
+  const [avatarVersion, setAvatarVersion] = useState(0)
 
   if (isLoadingConfig) return <LoadingScreen />
 
@@ -57,67 +103,138 @@ export default function App(): JSX.Element {
     )
   }
 
-  const progress = totalTrackDuration > 0 ? (currentPlaybackTime / totalTrackDuration) * 100 : 0
+  const handlePlayTrack = (track: TrackEntry): void => {
+    if (!activeFolder) return
+    setActiveTrackFilename(track.filename)
+    const url = `localfile://${activeFolder.folderPath}/${encodeURIComponent(track.filename)}`
+    loadTrack(url, track.title || track.filename)
+  }
+
+  const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2
 
   return (
-    <SidebarProvider>
-      <AppSidebar albums={folders} />
-      <SidebarInset className="flex flex-col overflow-hidden">
-        <header className="flex h-12 shrink-0 items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-2" />
-        </header>
-        <div className="flex-1 overflow-y-auto flex flex-col items-center gap-4 p-4 pb-0">
-          <CreateFolderForm
-            folderName={folderName}
-            folderType={folderType}
-            folderArtist={folderArtist}
-            onFolderArtworkChange={setFolderArtwork}
-            onFolderNameChange={setFolderName}
-            onFolderTypeChange={setFolderType}
-            onFolderArtistChange={setFolderArtist}
-            onCreateFolder={createFolder}
-          />
-          <ActiveFolder />
-          <FolderList folders={folders.sort((a, b) => b.createdAt.localeCompare(a.createdAt))} />
-        </div>
-        <div className="shrink-0 border-t border-border/40 bg-background/60 backdrop-blur-xl">
-          <div className="w-full h-[3px] bg-muted">
-            <div className="h-full bg-primary transition-none" style={{ width: `${progress}%` }} />
-          </div>
-          <div className="flex items-center px-6 py-3 gap-4">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate leading-tight">
-                {currentTrackName ?? '—'}
-              </p>
-              <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                {formatTime(currentPlaybackTime)}
-                <span className="text-muted-foreground/50 mx-1">/</span>
-                {formatTime(totalTrackDuration)}
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={stop}>
-                <Square size={14} />
-              </Button>
-              <Button
-                size="icon"
-                className="h-9 w-9 rounded-full"
-                onClick={isPlaying ? pause : play}
-              >
-                {isPlaying ? <Pause size={15} /> : <Play size={15} />}
-              </Button>
-            </div>
-            <div className="flex-1 flex justify-end">
-              <Input
-                type="file"
-                accept="audio/*"
-                onChange={handleFileUpload}
-                className="max-w-48 text-xs cursor-pointer hover:opacity-80 transition-opacity duration-150"
+    <TooltipProvider delay={300}>
+      <SidebarProvider>
+        <AppSidebar
+          albums={folders}
+          isLoading={isLoadingFolders}
+          libraryRoot={appConfig?.libraryRoot ?? null}
+          onLibraryRootChanged={applyLibraryRoot}
+          username={appConfig?.username || 'Set your name'}
+          avatarUrl={
+            appConfig?.avatarPath ? `localfile://${appConfig.avatarPath}?v=${avatarVersion}` : null
+          }
+          onProfileUpdated={(config) => {
+            applyConfig(config)
+            setAvatarVersion((version) => version + 1)
+          }}
+        />
+        <SidebarInset className="flex flex-col overflow-hidden">
+          <header className="flex h-12 shrink-0 items-center gap-2 px-4">
+            <Tooltip>
+              <TooltipTrigger render={<SidebarTrigger className="-ml-2" />} />
+              <TooltipContent>Toggle sidebar</TooltipContent>
+            </Tooltip>
+          </header>
+          <div className="flex-1 overflow-y-auto flex flex-col items-center gap-4 p-4 pb-0">
+            <CreateFolderForm
+              folderName={folderName}
+              folderType={folderType}
+              folderArtist={folderArtist}
+              onFolderArtworkChange={setFolderArtwork}
+              onFolderNameChange={setFolderName}
+              onFolderTypeChange={setFolderType}
+              onFolderArtistChange={setFolderArtist}
+              onCreateFolder={createFolder}
+            />
+            <ActiveFolder
+              onPlayTrack={handlePlayTrack}
+              getAnalyser={getAnalyser}
+              isPlaying={isPlaying}
+            />
+            {isLoadingFolders ? (
+              <div className="flex flex-wrap gap-4 p-4 justify-center">
+                {Array.from({ length: 4 }, (_, index) => (
+                  <Skeleton key={index} className="w-48 h-48 rounded-xl" />
+                ))}
+              </div>
+            ) : (
+              <FolderList
+                folders={[...folders].sort((a, b) => b.createdAt.localeCompare(a.createdAt))}
               />
+            )}
+          </div>
+          <div className="shrink-0 border-t border-border/40 bg-background/60 backdrop-blur-xl">
+            <div className="flex items-center px-6 py-3 gap-6">
+              <div className="w-56 min-w-0 shrink-0">
+                <p className="text-sm font-medium truncate leading-tight">
+                  {currentTrackName ?? '—'}
+                </p>
+                <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
+                  {formatTime(currentPlaybackTime)}
+                  <span className="text-muted-foreground/50 mx-1">/</span>
+                  {formatTime(totalTrackDuration)}
+                </p>
+              </div>
+
+              <div className="flex-1 flex items-center gap-4">
+                <div className="flex items-center gap-1 shrink-0">
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={stop} />
+                      }
+                    >
+                      <Square size={14} />
+                    </TooltipTrigger>
+                    <TooltipContent>Stop</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          size="icon"
+                          className="h-9 w-9 rounded-full"
+                          onClick={isPlaying ? pause : play}
+                        />
+                      }
+                    >
+                      {isPlaying ? <Pause size={15} /> : <Play size={15} />}
+                    </TooltipTrigger>
+                    <TooltipContent>{isPlaying ? 'Pause' : 'Play'}</TooltipContent>
+                  </Tooltip>
+                </div>
+                <SeekSlider
+                  currentTime={currentPlaybackTime}
+                  duration={totalTrackDuration}
+                  onSeek={seek}
+                />
+              </div>
+
+              <div className="flex items-center gap-2 w-40 shrink-0">
+                <VolumeIcon size={16} className="text-muted-foreground shrink-0" />
+                <Slider
+                  value={volume}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onValueChange={(value) => setVolume(toNumber(value))}
+                  aria-label="Volume"
+                />
+              </div>
+
+              <div className="w-44 shrink-0">
+                <Input
+                  type="file"
+                  accept="audio/*"
+                  onChange={handleFileUpload}
+                  className="text-xs cursor-pointer hover:opacity-80 transition-opacity duration-150"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
   )
 }

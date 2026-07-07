@@ -1,3 +1,4 @@
+import { useAlbumStore } from '@shared/store'
 import { AppConfig, Manifest } from '@shared/types'
 import { useEffect, useState } from 'react'
 
@@ -5,6 +6,7 @@ export function useLibrary(): {
   appConfig: AppConfig | undefined
   libraryRootExists: boolean | undefined
   isLoadingConfig: boolean
+  isLoadingFolders: boolean
   folders: Manifest[]
   folderName: string
   folderType: string
@@ -15,15 +17,21 @@ export function useLibrary(): {
   setFolderArtwork: (file: File | null) => void
   selectLibraryRoot: () => Promise<void>
   createFolder: () => Promise<void>
+  applyLibraryRoot: (libraryRoot: string) => void
+  applyConfig: (config: AppConfig) => void
 } {
   const [appConfig, setAppConfig] = useState<AppConfig>()
   const [libraryRootExists, setLibraryRootExists] = useState<boolean>()
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
-  const [folders, setFolders] = useState<Manifest[]>([])
+  const [isLoadingFolders, setIsLoadingFolders] = useState(true)
   const [folderName, setFolderName] = useState('')
   const [folderType, setFolderType] = useState('')
   const [folderArtist, setFolderArtist] = useState('')
   const [folderArtwork, setFolderArtwork] = useState<File | null>(null)
+
+  const folders = useAlbumStore((state) => state.folders)
+  const setFolders = useAlbumStore((state) => state.setFolders)
+  const addFolder = useAlbumStore((state) => state.addFolder)
 
   useEffect((): void => {
     const loadAppConfig = async (): Promise<void> => {
@@ -52,14 +60,20 @@ export function useLibrary(): {
   useEffect((): void => {
     if (!libraryRootExists) return
     const loadFolders = async (): Promise<void> => {
-      const manifests = await window.musicPlayer.getFolders()
-      setFolders(manifests)
+      setIsLoadingFolders(true)
+      try {
+        const manifests = await window.musicPlayer.getFolders()
+        setFolders(manifests)
+      } finally {
+        setIsLoadingFolders(false)
+      }
     }
     loadFolders()
-  }, [libraryRootExists])
+  }, [libraryRootExists, setFolders])
 
   const selectLibraryRoot = async (): Promise<void> => {
     const selectedPath = await window.musicPlayer.selectLibraryRoot()
+    if (selectedPath === null) return
     setAppConfig({ libraryRoot: selectedPath })
   }
 
@@ -81,17 +95,26 @@ export function useLibrary(): {
       folderToAdd = updatedFolder
     }
 
-    setFolders((prev) => [...prev, folderToAdd])
+    addFolder(folderToAdd)
     setFolderArtist('')
     setFolderType('')
     setFolderName('')
     setFolderArtwork(null)
   }
 
+  const applyLibraryRoot = (libraryRoot: string): void => {
+    setAppConfig((prev) => ({ ...prev, libraryRoot }))
+  }
+
+  const applyConfig = (config: AppConfig): void => {
+    setAppConfig(config)
+  }
+
   return {
     appConfig,
     libraryRootExists,
     isLoadingConfig,
+    isLoadingFolders,
     folders,
     folderName,
     folderType,
@@ -101,6 +124,8 @@ export function useLibrary(): {
     setFolderType,
     setFolderArtist,
     selectLibraryRoot,
-    createFolder
+    createFolder,
+    applyLibraryRoot,
+    applyConfig
   }
 }
