@@ -20,8 +20,9 @@ Built with Electron, React, TypeScript, Tailwind, SQLite, and the Web Audio API.
 ```bash
 npm install
 npm run dev        # development
-npm run build:mac  # package for macOS (Apple Silicon)
-npm run build:win  # package for Windows
+npm run build:mac        # package for macOS (Apple Silicon)
+npm run build:mac:intel  # package for macOS (Intel)
+npm run build:win        # package for Windows
 ```
 
 Packaged builds are unsigned. On macOS, allow the app under

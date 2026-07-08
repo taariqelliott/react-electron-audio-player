@@ -11,6 +11,8 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   - '!{TODO,scripts,.claude,LICENSE}'
+  - '!**/node_modules/@tailwindcss/oxide*/**'
+  - '!**/node_modules/lightningcss*/**'
 asarUnpack:
   - resources/**
 win:

@@ -18,6 +18,8 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win --x64 --config",
     "build:mac": "npm run build && electron-builder --mac --config && codesign --force --deep --sign - 'dist/mac-arm64/react-electron-audio-player.app'",
+    "build:mac:intel": "npm run build && electron-builder --mac --x64 --config && codesign --force --deep --sign - 'dist/mac/react-electron-audio-player.app'",
+    "build:mac:universal": "npm run build && electron-builder --mac --universal --config && codesign --force --deep --sign - 'dist/mac-universal/react-electron-audio-player.app'",
     "build:linux": "npm run build && electron-builder --linux --config"
   },
   "dependencies": {
