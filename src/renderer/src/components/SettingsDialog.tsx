@@ -26,39 +26,57 @@ function ProfileSection({
   onProfileUpdated
 }: Pick<SettingsDialogProps, 'username' | 'avatarUrl' | 'onProfileUpdated'>): JSX.Element {
   const [draftName, setDraftName] = useState(username)
-  const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
-  const isDirty = draftName.trim() !== username || avatarFile !== null
+  const isDirty = draftName.trim() !== username
 
-  const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>): void => {
+  // Uploads immediately on selection — no separate save step for the picture
+  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = event.target.files?.[0]
+    event.target.value = ''
     if (!file) return
-    setAvatarFile(file)
-    setAvatarPreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev)
-      return URL.createObjectURL(file)
-    })
+    setAvatarError(null)
+
+    // Reject formats Chromium can't render (e.g. HEIC) before persisting
+    const objectUrl = URL.createObjectURL(file)
+    try {
+      const probe = new Image()
+      probe.src = objectUrl
+      await probe.decode()
+    } catch {
+      setAvatarError('That image format isn’t supported — use a JPG, PNG, or WebP.')
+      URL.revokeObjectURL(objectUrl)
+      return
+    }
+    URL.revokeObjectURL(objectUrl)
+
+    setIsUploading(true)
+    try {
+      const config = await window.musicPlayer.updateProfile({
+        username,
+        avatarSourcePath: window.musicPlayer.getFilePath(file)
+      })
+      onProfileUpdated(config)
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handleSave = async (): Promise<void> => {
     if (!draftName.trim()) return
     setIsSaving(true)
     try {
-      const config = await window.musicPlayer.updateProfile({
-        username: draftName.trim(),
-        avatarSourcePath: avatarFile ? window.musicPlayer.getFilePath(avatarFile) : undefined
-      })
+      const config = await window.musicPlayer.updateProfile({ username: draftName.trim() })
       onProfileUpdated(config)
-      setAvatarFile(null)
     } finally {
       setIsSaving(false)
     }
   }
 
-  const previewSrc = avatarPreview ?? avatarUrl
+  const previewSrc = avatarUrl
 
   return (
     <div className="flex flex-col gap-3">
@@ -70,9 +88,13 @@ function ProfileSection({
             {initialsFor(draftName || username)}
           </AvatarFallback>
         </Avatar>
-        <Button variant="outline" onClick={() => avatarInputRef.current?.click()}>
+        <Button
+          variant="outline"
+          disabled={isUploading}
+          onClick={() => avatarInputRef.current?.click()}
+        >
           <ImagePlus size={14} />
-          {previewSrc ? 'Change picture' : 'Upload picture'}
+          {isUploading ? 'Uploading…' : previewSrc ? 'Change picture' : 'Upload picture'}
         </Button>
         <input
           ref={avatarInputRef}
@@ -82,6 +104,7 @@ function ProfileSection({
           onChange={handleAvatarChange}
         />
       </div>
+      {avatarError && <p className="text-xs text-destructive">{avatarError}</p>}
       <div className="flex flex-col gap-2">
         <Label htmlFor="settingsUsername">Username</Label>
         <div className="flex gap-2">

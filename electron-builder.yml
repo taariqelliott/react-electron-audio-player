@@ -1,7 +1,8 @@
-appId: com.electron.app
+appId: com.taariqelliott.audio-player
 productName: react-electron-audio-player
 directories:
   buildResources: build
+afterPack: scripts/fix-win-native.cjs
 files:
   - '!**/.vscode/*'
   - '!src/*'
@@ -9,6 +10,7 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!{TODO,scripts,.claude,LICENSE}'
 asarUnpack:
   - resources/**
 win:
@@ -33,11 +35,8 @@ linux:
     - AppImage
     - snap
     - deb
-  maintainer: electronjs.org
+  maintainer: Taariq Elliott <codebytaariq@gmail.com>
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
-publish:
-  provider: generic
-  url: https://example.com/auto-updates

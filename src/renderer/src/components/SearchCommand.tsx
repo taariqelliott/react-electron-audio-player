@@ -72,7 +72,9 @@ export function SearchCommand(): JSX.Element {
       >
         <Search size={14} />
         Search library…
-        <kbd className="ml-auto text-[10px] tracking-wider text-muted-foreground/70">⌘K</kbd>
+        <kbd className="ml-auto text-[10px] tracking-wider text-muted-foreground/70">
+          {navigator.platform.toLowerCase().includes('mac') ? '⌘K' : 'Ctrl K'}
+        </kbd>
       </Button>
 
       <CommandDialog

@@ -6,8 +6,8 @@ import { Badge } from './ui/badge'
 
 const artworkSrc = (folderPath: string): string => `localfile://${folderPath}/artwork.jpg`
 
-const BAR_COUNT = 5
-const IDLE_HEIGHTS = [0.25, 0.4, 0.3, 0.45, 0.2]
+const BAR_COUNT = 12
+const IDLE_HEIGHTS = [0.25, 0.4, 0.3, 0.45, 0.2, 0.35, 0.5, 0.3, 0.4, 0.25, 0.45, 0.3]
 
 type EqualizerBarsProps = {
   getAnalyser: () => AnalyserNode | null

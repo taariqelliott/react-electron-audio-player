@@ -10,11 +10,12 @@ import {
   UpdateTrackArgs
 } from '@shared/types'
 import Database from 'better-sqlite3'
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron'
 import { parseFile } from 'music-metadata'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path, { join } from 'node:path'
+import { Readable } from 'node:stream'
 import icon from '../../resources/icon.png?asset'
 
 let db: Database.Database
@@ -187,16 +188,68 @@ const rebuildIndex = (): { folders: number; tracks: number } => {
 // ─── App Ready ────────────────────────────────────────────────────────────────
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'localfile', privileges: { secure: true, supportFetchAPI: true } }
+  {
+    scheme: 'localfile',
+    privileges: { secure: true, supportFetchAPI: true, stream: true, corsEnabled: true }
+  }
 ])
 
 app.whenReady().then(() => {
-  protocol.handle('localfile', (request) => {
+  const MIME_TYPES: Record<string, string> = {
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.flac': 'audio/flac',
+    '.ogg': 'audio/ogg',
+    '.opus': 'audio/ogg',
+    '.m4a': 'audio/mp4',
+    '.aac': 'audio/aac',
+    '.webm': 'audio/webm',
+    '.aiff': 'audio/aiff',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png'
+  }
+
+  // Serves files with Content-Length and Range support so media elements get a
+  // finite, seekable duration. The CORS header keeps crossOrigin="anonymous"
+  // streams untainted (a tainted source is silenced by Web Audio).
+  protocol.handle('localfile', async (request) => {
     // Query string is only a cache-buster; strip it before hitting the filesystem
     const filePath = decodeURIComponent(request.url.slice('localfile://'.length).split('?')[0])
-    return net.fetch(`file://${filePath}`)
+    if (!fs.existsSync(filePath)) return new Response('Not found', { status: 404 })
+
+    const { size } = fs.statSync(filePath)
+    const baseHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Accept-Ranges': 'bytes',
+      'Content-Type': MIME_TYPES[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream'
+    }
+
+    const rangeHeader = request.headers.get('range')
+    const rangeMatch = rangeHeader ? /bytes=(\d*)-(\d*)/.exec(rangeHeader) : null
+    if (rangeMatch) {
+      const start = rangeMatch[1] ? parseInt(rangeMatch[1], 10) : 0
+      const end = Math.min(rangeMatch[2] ? parseInt(rangeMatch[2], 10) : size - 1, size - 1)
+      const stream = Readable.toWeb(
+        fs.createReadStream(filePath, { start, end })
+      ) as unknown as ReadableStream
+      return new Response(stream, {
+        status: 206,
+        headers: {
+          ...baseHeaders,
+          'Content-Range': `bytes ${start}-${end}/${size}`,
+          'Content-Length': String(end - start + 1)
+        }
+      })
+    }
+
+    const stream = Readable.toWeb(fs.createReadStream(filePath)) as unknown as ReadableStream
+    return new Response(stream, {
+      status: 200,
+      headers: { ...baseHeaders, 'Content-Length': String(size) }
+    })
   })
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.taariqelliott.audio-player')
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

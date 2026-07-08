@@ -17,43 +17,19 @@ export type AudioEngine = {
 }
 
 export function useAudioEngine(): AudioEngine {
+  const audioElementRef = useRef<HTMLAudioElement | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const gainNodeRef = useRef<GainNode | null>(null)
   const analyserNodeRef = useRef<AnalyserNode | null>(null)
-  const activeSourceNodeRef = useRef<AudioBufferSourceNode | null>(null)
-  const decodedAudioBufferRef = useRef<AudioBuffer | null>(null)
-  const playbackStartedAtRef = useRef<number>(0)
-  const playbackPausedAtRef = useRef<number>(0)
   const animationFrameIdRef = useRef<number | null>(null)
+  const objectUrlRef = useRef<string | null>(null)
   const volumeRef = useRef(1)
-  const loadIdRef = useRef(0)
 
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0)
   const [totalTrackDuration, setTotalTrackDuration] = useState(0)
   const [currentTrackName, setCurrentTrackName] = useState<string | null>(null)
   const [volume, setVolumeState] = useState(1)
-
-  const getOrCreateAudioContext = (): AudioContext => {
-    if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-      audioContextRef.current = new AudioContext()
-      gainNodeRef.current = null
-      analyserNodeRef.current = null
-    }
-    const audioContext = audioContextRef.current
-    // Signal chain: source → gain → analyser → destination
-    if (!gainNodeRef.current) {
-      const gainNode = audioContext.createGain()
-      gainNode.gain.value = volumeRef.current
-      const analyserNode = audioContext.createAnalyser()
-      analyserNode.fftSize = 2048
-      gainNode.connect(analyserNode)
-      analyserNode.connect(audioContext.destination)
-      gainNodeRef.current = gainNode
-      analyserNodeRef.current = analyserNode
-    }
-    return audioContext
-  }
 
   const cancelPositionLoop = (): void => {
     if (animationFrameIdRef.current) {
@@ -62,127 +38,175 @@ export function useAudioEngine(): AudioEngine {
     }
   }
 
-  const updatePlaybackPosition = (): void => {
-    setCurrentPlaybackTime(getOrCreateAudioContext().currentTime - playbackStartedAtRef.current)
-    animationFrameIdRef.current = requestAnimationFrame(updatePlaybackPosition)
+  // Short gain ramps around every discontinuity (pause/stop/seek/switch) so the
+  // waveform never jumps to zero mid-cycle, which is audible as a click/pop
+  const FADE_SECONDS = 0.03
+
+  const rampGain = (target: number, seconds: number): void => {
+    const audioContext = audioContextRef.current
+    const gainNode = gainNodeRef.current
+    if (!audioContext || !gainNode) return
+    const now = audioContext.currentTime
+    gainNode.gain.cancelScheduledValues(now)
+    gainNode.gain.setValueAtTime(gainNode.gain.value, now)
+    gainNode.gain.linearRampToValueAtTime(target, now + seconds)
   }
 
-  // Nulls the ref before stopping so the source's onended sees it was superseded
-  const stopActiveSource = (): void => {
-    const source = activeSourceNodeRef.current
-    activeSourceNodeRef.current = null
-    source?.stop()
+  const fadeOutThen = async (action: () => void): Promise<void> => {
+    rampGain(0, FADE_SECONDS)
+    await new Promise((resolve) => setTimeout(resolve, FADE_SECONDS * 1000 + 10))
+    action()
   }
 
-  const startPlayback = (offsetSeconds: number): void => {
-    if (!decodedAudioBufferRef.current || !gainNodeRef.current) return
-    const audioContext = getOrCreateAudioContext()
+  // Streams through a media element so playback starts without decoding the
+  // whole file. Chain: element → gain → analyser → destination.
+  const ensureGraph = (): HTMLAudioElement => {
+    if (!audioElementRef.current) {
+      const audioContext = new AudioContext()
+      const gainNode = audioContext.createGain()
+      gainNode.gain.value = volumeRef.current
+      const analyserNode = audioContext.createAnalyser()
+      analyserNode.fftSize = 2048
+      gainNode.connect(analyserNode)
+      analyserNode.connect(audioContext.destination)
 
-    const newSourceNode = audioContext.createBufferSource()
-    newSourceNode.buffer = decodedAudioBufferRef.current
-    newSourceNode.connect(gainNodeRef.current)
-    newSourceNode.start(0, offsetSeconds)
-    playbackStartedAtRef.current = audioContext.currentTime - offsetSeconds
+      const audio = new Audio()
+      // Required so the cross-origin localfile:// stream isn't silenced by Web Audio
+      audio.crossOrigin = 'anonymous'
+      audio.preload = 'auto'
+      audioContext.createMediaElementSource(audio).connect(gainNode)
 
-    newSourceNode.onended = (): void => {
-      // Only a natural end of the still-active source resets playback state
-      if (activeSourceNodeRef.current !== newSourceNode) return
-      activeSourceNodeRef.current = null
-      playbackPausedAtRef.current = 0
-      playbackStartedAtRef.current = 0
-      cancelPositionLoop()
-      setCurrentPlaybackTime(0)
-      setIsPlaying(false)
+      // Throttled to ~5 updates/sec: a per-frame setState re-renders the whole
+      // app tree 60×/sec, which competes with audio rendering in this process
+      let lastShownTime = -1
+      const updatePosition = (): void => {
+        const currentTime = audio.currentTime
+        if (Math.abs(currentTime - lastShownTime) >= 0.2) {
+          lastShownTime = currentTime
+          setCurrentPlaybackTime(currentTime)
+        }
+        animationFrameIdRef.current = requestAnimationFrame(updatePosition)
+      }
+
+      audio.addEventListener('loadedmetadata', () => {
+        setTotalTrackDuration(Number.isFinite(audio.duration) ? audio.duration : 0)
+      })
+      audio.addEventListener('play', () => {
+        setIsPlaying(true)
+        cancelPositionLoop()
+        animationFrameIdRef.current = requestAnimationFrame(updatePosition)
+      })
+      audio.addEventListener('pause', () => {
+        setIsPlaying(false)
+        cancelPositionLoop()
+        setCurrentPlaybackTime(audio.currentTime)
+      })
+      audio.addEventListener('ended', () => {
+        audio.currentTime = 0
+        setCurrentPlaybackTime(0)
+      })
+      audio.addEventListener('error', () => {
+        console.error('Audio playback error:', audio.error)
+      })
+      // Diagnostics: these fire when the decoder runs out of buffered data,
+      // which is audible as a dropout — points at the file-serving side
+      audio.addEventListener('waiting', () => {
+        console.warn(`[audio] waiting: decoder starved at ${audio.currentTime.toFixed(2)}s`)
+      })
+      audio.addEventListener('stalled', () => {
+        console.warn(`[audio] stalled: no data arriving at ${audio.currentTime.toFixed(2)}s`)
+      })
+
+      audioContextRef.current = audioContext
+      gainNodeRef.current = gainNode
+      analyserNodeRef.current = analyserNode
+      audioElementRef.current = audio
+    }
+    return audioElementRef.current
+  }
+
+  const startWithFadeIn = async (audio: HTMLAudioElement): Promise<void> => {
+    if (audioContextRef.current?.state === 'suspended') await audioContextRef.current.resume()
+    const audioContext = audioContextRef.current
+    const gainNode = gainNodeRef.current
+    if (audioContext && gainNode) {
+      gainNode.gain.cancelScheduledValues(audioContext.currentTime)
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+    }
+    try {
+      await audio.play()
+      rampGain(volumeRef.current, FADE_SECONDS)
+    } catch (error) {
+      console.error('Failed to play track:', error)
+      rampGain(volumeRef.current, FADE_SECONDS)
+    }
+  }
+
+  const loadTrack = async (url: string, name: string, autoplay = true): Promise<void> => {
+    const audio = ensureGraph()
+
+    if (!audio.paused) {
+      await fadeOutThen(() => audio.pause())
     }
 
-    activeSourceNodeRef.current = newSourceNode
-    setIsPlaying(true)
-    cancelPositionLoop()
-    animationFrameIdRef.current = requestAnimationFrame(updatePlaybackPosition)
-  }
-
-  const loadDecodedBuffer = async (
-    rawAudioBytes: ArrayBuffer,
-    name: string,
-    autoplay: boolean
-  ): Promise<void> => {
-    const loadId = ++loadIdRef.current
-    const audioContext = getOrCreateAudioContext()
-
-    stopActiveSource()
-    cancelPositionLoop()
-    playbackPausedAtRef.current = 0
-    playbackStartedAtRef.current = 0
-    setIsPlaying(false)
-    setCurrentPlaybackTime(0)
+    audio.src = url
     setCurrentTrackName(name)
-
-    const decodedBuffer = await audioContext.decodeAudioData(rawAudioBytes)
-    if (loadId !== loadIdRef.current) return
-
-    decodedAudioBufferRef.current = decodedBuffer
-    setTotalTrackDuration(decodedBuffer.duration)
+    setCurrentPlaybackTime(0)
+    setTotalTrackDuration(0)
 
     if (autoplay) {
-      if (audioContext.state === 'suspended') await audioContext.resume()
-      startPlayback(0)
+      await startWithFadeIn(audio)
     }
   }
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     if (!event.target.files || event.target.files.length === 0) return
     const file = event.target.files[0]
-    const rawAudioBytes = await file.arrayBuffer()
-    await loadDecodedBuffer(rawAudioBytes, file.name.replace(/\.[^/.]+$/, ''), false)
-  }
-
-  const loadTrack = async (url: string, name: string, autoplay = true): Promise<void> => {
-    try {
-      const response = await fetch(url)
-      if (!response.ok) throw new Error(`Failed to load track: ${response.status}`)
-      const rawAudioBytes = await response.arrayBuffer()
-      await loadDecodedBuffer(rawAudioBytes, name, autoplay)
-    } catch (error) {
-      console.error('Failed to load track:', error)
-    }
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
+    objectUrlRef.current = URL.createObjectURL(file)
+    await loadTrack(objectUrlRef.current, file.name.replace(/\.[^/.]+$/, ''), false)
   }
 
   const play = async (): Promise<void> => {
-    if (!decodedAudioBufferRef.current) return
-    const audioContext = getOrCreateAudioContext()
-    if (audioContext.state === 'suspended') await audioContext.resume()
-
-    stopActiveSource()
-    startPlayback(playbackPausedAtRef.current)
+    const audio = audioElementRef.current
+    if (!audio || !audio.src) return
+    await startWithFadeIn(audio)
   }
 
   const pause = (): void => {
-    stopActiveSource()
-    playbackPausedAtRef.current =
-      getOrCreateAudioContext().currentTime - playbackStartedAtRef.current
-    cancelPositionLoop()
-    setIsPlaying(false)
+    const audio = audioElementRef.current
+    if (!audio || audio.paused) return
+    fadeOutThen(() => audio.pause())
   }
 
   const stop = (): void => {
-    stopActiveSource()
-    playbackPausedAtRef.current = 0
-    playbackStartedAtRef.current = 0
-    cancelPositionLoop()
-    setCurrentPlaybackTime(0)
-    setIsPlaying(false)
+    const audio = audioElementRef.current
+    if (!audio) return
+    const reset = (): void => {
+      audio.pause()
+      audio.currentTime = 0
+      setCurrentPlaybackTime(0)
+    }
+    if (audio.paused) {
+      reset()
+    } else {
+      fadeOutThen(reset)
+    }
   }
 
   const seek = (seconds: number): void => {
-    if (!decodedAudioBufferRef.current) return
-    const clamped = Math.max(0, Math.min(seconds, decodedAudioBufferRef.current.duration))
-
-    if (isPlaying) {
-      stopActiveSource()
-      startPlayback(clamped)
-    } else {
-      playbackPausedAtRef.current = clamped
+    const audio = audioElementRef.current
+    if (!audio || !Number.isFinite(audio.duration)) return
+    const clamped = Math.max(0, Math.min(seconds, audio.duration))
+    if (audio.paused) {
+      audio.currentTime = clamped
       setCurrentPlaybackTime(clamped)
+    } else {
+      fadeOutThen(() => {
+        audio.currentTime = clamped
+        setCurrentPlaybackTime(clamped)
+        rampGain(volumeRef.current, FADE_SECONDS)
+      })
     }
   }
 
@@ -190,9 +214,7 @@ export function useAudioEngine(): AudioEngine {
     const clamped = Math.max(0, Math.min(value, 1))
     volumeRef.current = clamped
     setVolumeState(clamped)
-    if (gainNodeRef.current) {
-      gainNodeRef.current.gain.value = clamped
-    }
+    rampGain(clamped, 0.01)
   }
 
   const getAnalyser = useCallback((): AnalyserNode | null => analyserNodeRef.current, [])
@@ -200,7 +222,9 @@ export function useAudioEngine(): AudioEngine {
   useEffect(() => {
     return (): void => {
       cancelPositionLoop()
-      activeSourceNodeRef.current?.stop()
+      audioElementRef.current?.pause()
+      if (audioElementRef.current) audioElementRef.current.src = ''
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
       audioContextRef.current?.close()
     }
   }, [])

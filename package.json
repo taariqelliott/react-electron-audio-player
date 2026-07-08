@@ -1,10 +1,10 @@
 {
   "name": "react-electron-audio-player",
   "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "description": "A free, open-source, local-first desktop music player",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "Taariq Elliott",
+  "license": "MIT",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
@@ -16,9 +16,9 @@
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux"
+    "build:win": "npm run build && electron-builder --win --x64 --config",
+    "build:mac": "npm run build && electron-builder --mac --config && codesign --force --deep --sign - 'dist/mac-arm64/react-electron-audio-player.app'",
+    "build:linux": "npm run build && electron-builder --linux --config"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

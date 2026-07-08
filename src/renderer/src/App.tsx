@@ -1,7 +1,7 @@
 import { useAlbumStore } from '@shared/store'
 import { TrackEntry } from '@shared/types'
-import { Pause, Play, Square, Volume1, Volume2, VolumeX } from 'lucide-react'
-import { JSX, useState } from 'react'
+import { Pause, Play, SkipBack, SkipForward, Square, Volume1, Volume2, VolumeX } from 'lucide-react'
+import { JSX, useRef, useState } from 'react'
 import ActiveFolder from './components/ActiveFolder'
 import { AppSidebar } from './components/AppSidebar'
 import { CreateFolderForm } from './components/CreateFolderForm'
@@ -89,8 +89,19 @@ export default function App(): JSX.Element {
   } = useLibrary()
 
   const activeFolder = useAlbumStore((state) => state.activeFolder)
+  const activeTrackFilename = useAlbumStore((state) => state.activeTrackFilename)
   const setActiveTrackFilename = useAlbumStore((state) => state.setActiveTrackFilename)
   const [avatarVersion, setAvatarVersion] = useState(0)
+  const lastVolumeRef = useRef(1)
+
+  const toggleMute = (): void => {
+    if (volume > 0) {
+      lastVolumeRef.current = volume
+      setVolume(0)
+    } else {
+      setVolume(lastVolumeRef.current || 1)
+    }
+  }
 
   if (isLoadingConfig) return <LoadingScreen />
 
@@ -108,6 +119,30 @@ export default function App(): JSX.Element {
     setActiveTrackFilename(track.filename)
     const url = `localfile://${activeFolder.folderPath}/${encodeURIComponent(track.filename)}`
     loadTrack(url, track.title || track.filename)
+  }
+
+  const playableTracks = activeFolder
+    ? [...activeFolder.tracks].sort((a, b) => a.trackOrder - b.trackOrder).filter((t) => !t.missing)
+    : []
+  const currentTrackIndex = playableTracks.findIndex(
+    (track) => track.filename === activeTrackFilename
+  )
+
+  const playNext = (): void => {
+    if (playableTracks.length === 0) return
+    handlePlayTrack(playableTracks[(currentTrackIndex + 1) % playableTracks.length])
+  }
+
+  const playPrevious = (): void => {
+    if (playableTracks.length === 0) return
+    // Restart the current track when past 3s, otherwise jump to the previous one
+    if (currentPlaybackTime > 3 && currentTrackIndex !== -1) {
+      seek(0)
+      return
+    }
+    handlePlayTrack(
+      playableTracks[(currentTrackIndex - 1 + playableTracks.length) % playableTracks.length]
+    )
   }
 
   const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2
@@ -193,6 +228,22 @@ export default function App(): JSX.Element {
                     <TooltipTrigger
                       render={
                         <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          disabled={playableTracks.length === 0}
+                          onClick={playPrevious}
+                        />
+                      }
+                    >
+                      <SkipBack size={14} />
+                    </TooltipTrigger>
+                    <TooltipContent>Previous track</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
                           size="icon"
                           className="h-9 w-9 rounded-full"
                           onClick={isPlaying ? pause : play}
@@ -203,6 +254,22 @@ export default function App(): JSX.Element {
                     </TooltipTrigger>
                     <TooltipContent>{isPlaying ? 'Pause' : 'Play'}</TooltipContent>
                   </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          disabled={playableTracks.length === 0}
+                          onClick={playNext}
+                        />
+                      }
+                    >
+                      <SkipForward size={14} />
+                    </TooltipTrigger>
+                    <TooltipContent>Next track</TooltipContent>
+                  </Tooltip>
                 </div>
                 <SeekSlider
                   currentTime={currentPlaybackTime}
@@ -212,7 +279,21 @@ export default function App(): JSX.Element {
               </div>
 
               <div className="flex items-center gap-2 w-40 shrink-0">
-                <VolumeIcon size={16} className="text-muted-foreground shrink-0" />
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground"
+                        onClick={toggleMute}
+                      />
+                    }
+                  >
+                    <VolumeIcon size={16} />
+                  </TooltipTrigger>
+                  <TooltipContent>{volume === 0 ? 'Unmute' : 'Mute'}</TooltipContent>
+                </Tooltip>
                 <Slider
                   value={volume}
                   min={0}
