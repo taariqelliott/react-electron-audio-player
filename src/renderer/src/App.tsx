@@ -9,7 +9,6 @@ import { FolderList } from './components/FolderList'
 import { LoadingScreen } from './components/LoadingScreen'
 import { SetupScreen } from './components/SetupScreen'
 import { Button } from './components/ui/button'
-import { Input } from './components/ui/input'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './components/ui/sidebar'
 import { Skeleton } from './components/ui/skeleton'
 import { Slider } from './components/ui/slider'
@@ -59,7 +58,6 @@ export default function App(): JSX.Element {
     totalTrackDuration,
     currentTrackName,
     volume,
-    handleFileUpload,
     loadTrack,
     play,
     pause,
@@ -304,14 +302,14 @@ export default function App(): JSX.Element {
                 />
               </div>
 
-              <div className="w-44 shrink-0">
+              {/* <div className="w-44 shrink-0">
                 <Input
                   type="file"
                   accept="audio/*"
                   onChange={handleFileUpload}
                   className="text-xs cursor-pointer hover:opacity-80 transition-opacity duration-150"
                 />
-              </div>
+              </div> */}
             </div>
           </div>
         </SidebarInset>
