@@ -19,6 +19,7 @@ export function useLibrary(): {
   createFolder: () => Promise<void>
   applyLibraryRoot: (libraryRoot: string) => void
   applyConfig: (config: AppConfig) => void
+  importFolder: () => Promise<void>
 } {
   const [appConfig, setAppConfig] = useState<AppConfig>()
   const [libraryRootExists, setLibraryRootExists] = useState<boolean>()
@@ -32,6 +33,8 @@ export function useLibrary(): {
   const folders = useAlbumStore((state) => state.folders)
   const setFolders = useAlbumStore((state) => state.setFolders)
   const addFolder = useAlbumStore((state) => state.addFolder)
+  const applyManifest = useAlbumStore((state) => state.applyManifest)
+  const updateActiveFolder = useAlbumStore((state) => state.updateActiveFolder)
 
   useEffect((): void => {
     const loadAppConfig = async (): Promise<void> => {
@@ -110,6 +113,13 @@ export function useLibrary(): {
     setAppConfig(config)
   }
 
+  const importFolder = async (): Promise<void> => {
+    const manifest = await window.musicPlayer.importFolder()
+    if (!manifest) return
+    applyManifest(manifest)
+    updateActiveFolder(manifest)
+  }
+
   return {
     appConfig,
     libraryRootExists,
@@ -126,6 +136,7 @@ export function useLibrary(): {
     selectLibraryRoot,
     createFolder,
     applyLibraryRoot,
-    applyConfig
+    applyConfig,
+    importFolder
   }
 }

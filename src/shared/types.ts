@@ -2,6 +2,7 @@ export type AppConfig = {
   libraryRoot: string | null
   username?: string
   avatarPath?: string | null
+  linkedFolders?: string[]
 }
 
 export type UpdateProfileArgs = {

@@ -26,7 +26,10 @@ const musicPlayerApi = {
   searchLibrary: (query: string) => ipcRenderer.invoke('search-library', query),
   rebuildIndex: () => ipcRenderer.invoke('rebuild-index'),
   changeLibraryRoot: () => ipcRenderer.invoke('change-library-root'),
-  updateProfile: (args: UpdateProfileArgs) => ipcRenderer.invoke('update-profile', args)
+  updateProfile: (args: UpdateProfileArgs) => ipcRenderer.invoke('update-profile', args),
+  importFolder: (folderPath?: string) => ipcRenderer.invoke('import-folder', folderPath),
+  deleteFolder: (folderPath: string) => ipcRenderer.invoke('delete-folder', folderPath),
+  rescanFolder: (folderPath: string) => ipcRenderer.invoke('rescan-folder', folderPath)
 }
 
 if (process.contextIsolated) {

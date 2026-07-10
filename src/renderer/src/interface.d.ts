@@ -27,6 +27,9 @@ declare global {
       rebuildIndex: () => Promise<{ folders: number; tracks: number }>
       changeLibraryRoot: () => Promise<{ libraryRoot: string; folders: Manifest[] } | null>
       updateProfile: (args: UpdateProfileArgs) => Promise<AppConfig>
+      importFolder: (folderPath?: string) => Promise<Manifest | null>
+      deleteFolder: (folderPath: string) => Promise<{ linked: boolean }>
+      rescanFolder: (folderPath: string) => Promise<Manifest>
     }
   }
 }

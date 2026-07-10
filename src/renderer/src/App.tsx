@@ -1,7 +1,17 @@
 import { localFileUrl } from '@/lib/utils'
 import { useAlbumStore } from '@shared/store'
 import { TrackEntry } from '@shared/types'
-import { Pause, Play, SkipBack, SkipForward, Square, Volume1, Volume2, VolumeX } from 'lucide-react'
+import {
+  FolderOpen,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  Square,
+  Volume1,
+  Volume2,
+  VolumeX
+} from 'lucide-react'
 import { JSX, useRef, useState } from 'react'
 import ActiveFolder from './components/ActiveFolder'
 import { AppSidebar } from './components/AppSidebar'
@@ -84,7 +94,8 @@ export default function App(): JSX.Element {
     selectLibraryRoot,
     createFolder,
     applyLibraryRoot,
-    applyConfig
+    applyConfig,
+    importFolder
   } = useLibrary()
 
   const activeFolder = useAlbumStore((state) => state.activeFolder)
@@ -156,40 +167,65 @@ export default function App(): JSX.Element {
           onLibraryRootChanged={applyLibraryRoot}
           username={appConfig?.username || 'Set your name'}
           avatarUrl={
-            appConfig?.avatarPath ? `${localFileUrl(appConfig.avatarPath)}?v=${avatarVersion}` : null
+            appConfig?.avatarPath
+              ? `${localFileUrl(appConfig.avatarPath)}?v=${avatarVersion}`
+              : null
           }
           onProfileUpdated={(config) => {
             applyConfig(config)
             setAvatarVersion((version) => version + 1)
           }}
+          onFolderDeleted={(folderPath) => {
+            if (activeFolder?.folderPath === folderPath) stop()
+          }}
         />
-        <SidebarInset className="flex flex-col overflow-hidden">
-          <header className="flex h-12 shrink-0 items-center gap-2 px-4">
+        <SidebarInset className="flex h-svh flex-col overflow-hidden">
+          <header className="flex h-12 shrink-0 items-center justify-between gap-2 px-4 border-b border-border/40">
             <Tooltip>
               <TooltipTrigger render={<SidebarTrigger className="-ml-2" />} />
               <TooltipContent>Toggle sidebar</TooltipContent>
             </Tooltip>
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger render={<Button variant="outline" onClick={importFolder} />}>
+                  <FolderOpen />
+                </TooltipTrigger>
+                <TooltipContent>Import an existing folder (no copying)</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span>
+                      <CreateFolderForm
+                        folderName={folderName}
+                        folderType={folderType}
+                        folderArtist={folderArtist}
+                        onFolderArtworkChange={setFolderArtwork}
+                        onFolderNameChange={setFolderName}
+                        onFolderTypeChange={setFolderType}
+                        onFolderArtistChange={setFolderArtist}
+                        onCreateFolder={createFolder}
+                      />
+                    </span>
+                  }
+                />
+                <TooltipContent>Create a new album</TooltipContent>
+              </Tooltip>
+            </div>
           </header>
-          <div className="flex-1 overflow-y-auto flex flex-col items-center gap-4 p-4 pb-0">
-            <CreateFolderForm
-              folderName={folderName}
-              folderType={folderType}
-              folderArtist={folderArtist}
-              onFolderArtworkChange={setFolderArtwork}
-              onFolderNameChange={setFolderName}
-              onFolderTypeChange={setFolderType}
-              onFolderArtistChange={setFolderArtist}
-              onCreateFolder={createFolder}
-            />
+          <div className="flex-1 min-h-0 overflow-hidden flex flex-col items-center px-4">
             <ActiveFolder
               onPlayTrack={handlePlayTrack}
               getAnalyser={getAnalyser}
               isPlaying={isPlaying}
             />
+          </div>
+          {/* Album shelf: always visible, wraps like iTunes and scrolls vertically */}
+          <div className="shrink-0 border-t border-border/40">
             {isLoadingFolders ? (
-              <div className="flex flex-wrap gap-4 p-4 justify-center">
-                {Array.from({ length: 4 }, (_, index) => (
-                  <Skeleton key={index} className="w-48 h-48 rounded-xl" />
+              <div className="flex flex-wrap gap-3 justify-center max-h-56 overflow-hidden px-4 py-3">
+                {Array.from({ length: 6 }, (_, index) => (
+                  <Skeleton key={index} className="w-36 h-36 shrink-0 rounded-xl" />
                 ))}
               </div>
             ) : (

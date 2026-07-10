@@ -25,8 +25,10 @@ import {
   Moon,
   MoreHorizontal,
   Pencil,
+  RefreshCw,
   Settings,
-  Sun
+  Sun,
+  Trash2
 } from 'lucide-react'
 import { AppConfig } from '@shared/types'
 import { JSX, useState } from 'react'
@@ -34,6 +36,16 @@ import { initialsFor, localFileUrl } from '@/lib/utils'
 import { FolderEditDialog } from './FolderEditDialog'
 import { SearchCommand } from './SearchCommand'
 import { SettingsDialog } from './SettingsDialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from './ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import {
   DropdownMenu,
@@ -76,6 +88,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   username: string
   avatarUrl: string | null
   onProfileUpdated: (config: AppConfig) => void
+  onFolderDeleted: (folderPath: string) => void
 }
 
 export function AppSidebar({
@@ -86,13 +99,30 @@ export function AppSidebar({
   username,
   avatarUrl,
   onProfileUpdated,
+  onFolderDeleted,
   ...props
 }: AppSidebarProps): JSX.Element {
   const activeFolder = useAlbumStore((state) => state.activeFolder)
   const updateActiveFolder = useAlbumStore((state) => state.updateActiveFolder)
+  const removeFolder = useAlbumStore((state) => state.removeFolder)
+  const applyManifest = useAlbumStore((state) => state.applyManifest)
   const [folderToEdit, setFolderToEdit] = useState<Manifest | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [folderToDelete, setFolderToDelete] = useState<Manifest | null>(null)
+
+  // Linked folders live outside the library root — deleting only unlinks them
+  const isLinked = (folder: Manifest): boolean =>
+    !libraryRoot || !folder.folderPath.startsWith(`${libraryRoot}/`)
+
+  const handleDeleteFolder = async (): Promise<void> => {
+    if (!folderToDelete) return
+    const folderPath = folderToDelete.folderPath
+    await window.musicPlayer.deleteFolder(folderPath)
+    setFolderToDelete(null)
+    onFolderDeleted(folderPath)
+    removeFolder(folderPath)
+  }
 
   return (
     <Sidebar variant="sidebar" {...props}>
@@ -155,7 +185,9 @@ export function AppSidebar({
                         >
                           <div className="flex items-center justify-center gap-2 min-w-0">
                             <Avatar size="sm">
-                              <AvatarImage src={localFileUrl(album.folderPath, 'artwork.jpg')} />
+                              {album.artwork && (
+                                <AvatarImage src={localFileUrl(album.folderPath, album.artwork)} />
+                              )}
                             </Avatar>
                             <p className="truncate">{album.name}</p>
                           </div>
@@ -185,6 +217,24 @@ export function AppSidebar({
                             >
                               <Pencil className="size-3.5" />
                               Edit folder
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={async () => {
+                                const updated = await window.musicPlayer.rescanFolder(
+                                  album.folderPath
+                                )
+                                applyManifest(updated)
+                              }}
+                            >
+                              <RefreshCw className="size-3.5" />
+                              Rescan folder
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => setFolderToDelete(album)}
+                            >
+                              <Trash2 className="size-3.5" />
+                              {isLinked(album) ? 'Remove from library' : 'Delete folder'}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -245,6 +295,31 @@ export function AppSidebar({
       </SidebarFooter>
 
       <FolderEditDialog folder={folderToEdit} open={isEditOpen} onOpenChange={setIsEditOpen} />
+      <AlertDialog
+        open={folderToDelete !== null}
+        onOpenChange={(open) => !open && setFolderToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {folderToDelete && isLinked(folderToDelete)
+                ? `Remove “${folderToDelete?.name}” from your library?`
+                : `Delete “${folderToDelete?.name}”?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {folderToDelete && isLinked(folderToDelete)
+                ? 'This only removes the link — the folder and its files stay untouched on your disk. You can import it again anytime.'
+                : 'This permanently deletes the folder and every file inside it from disk. This action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDeleteFolder}>
+              {folderToDelete && isLinked(folderToDelete) ? 'Remove' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <SettingsDialog
         open={isSettingsOpen}
         onOpenChange={setIsSettingsOpen}

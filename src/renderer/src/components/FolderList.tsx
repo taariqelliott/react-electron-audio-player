@@ -29,19 +29,19 @@ export function FolderList({ folders }: FolderListProps): JSX.Element {
   }, [activeFolder])
 
   return (
-    <div className="flex flex-wrap gap-4 p-4 justify-center">
+    <div className="flex flex-wrap gap-3 justify-center overflow-y-auto max-h-56 px-4 py-3">
       {folders.map((folder) => {
         const { artist, artwork, createdAt, name, totalTracks, folderPath, type } = folder
         return (
           <Card
             onClick={() => updateActiveFolder(folder)}
             key={`${artist}-${name}-${createdAt}`}
-            className="group relative w-48 h-48 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity bg-primary border-none"
+            className="group relative w-36 h-36 shrink-0 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity bg-primary border-none"
           >
             <CardContent className="p-0 w-full h-full">
               {artwork ? (
                 <img
-                  src={localFileUrl(folderPath, 'artwork.jpg')}
+                  src={localFileUrl(folderPath, artwork)}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : (

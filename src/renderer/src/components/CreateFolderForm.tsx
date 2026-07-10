@@ -51,7 +51,7 @@ export function CreateFolderForm({
   const { theme } = useTheme()
 
   return (
-    <div className="flex items-center justify-center flex-col gap-2 absolute top-2 right-2">
+    <div className="flex items-center gap-2">
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger
           render={

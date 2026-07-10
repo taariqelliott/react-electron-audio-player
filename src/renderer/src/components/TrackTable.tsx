@@ -18,7 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { useAlbumStore } from '@shared/store'
 import { Manifest, TrackEntry } from '@shared/types'
-import { GripVertical, Music2, Play, Plus, Trash2 } from 'lucide-react'
+import { GripVertical, Music2, Play, Trash2 } from 'lucide-react'
 import { JSX, KeyboardEvent, useState } from 'react'
 import {
   AlertDialog,
@@ -204,7 +204,6 @@ export function TrackTable({ folder, onPlayTrack }: TrackTableProps): JSX.Elemen
   const activeTrackFilename = useAlbumStore((state) => state.activeTrackFilename)
   const applyManifest = useAlbumStore((state) => state.applyManifest)
   const [trackToDelete, setTrackToDelete] = useState<TrackEntry | null>(null)
-  const [isAddingTracks, setIsAddingTracks] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -212,16 +211,6 @@ export function TrackTable({ folder, onPlayTrack }: TrackTableProps): JSX.Elemen
   )
 
   const tracks = [...folder.tracks].sort((a, b) => a.trackOrder - b.trackOrder)
-
-  const handleAddTracks = async (): Promise<void> => {
-    setIsAddingTracks(true)
-    try {
-      const updated = await window.musicPlayer.addTracks(folder.folderPath)
-      if (updated) applyManifest(updated)
-    } finally {
-      setIsAddingTracks(false)
-    }
-  }
 
   const handleDragEnd = async (event: DragEndEvent): Promise<void> => {
     const { active, over } = event
@@ -268,16 +257,6 @@ export function TrackTable({ folder, onPlayTrack }: TrackTableProps): JSX.Elemen
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-medium text-muted-foreground">
-          {folder.totalTracks} {folder.totalTracks === 1 ? 'track' : 'tracks'}
-        </p>
-        <Button size="sm" variant="outline" onClick={handleAddTracks} disabled={isAddingTracks}>
-          <Plus size={14} />
-          {isAddingTracks ? 'Adding…' : 'Add Tracks'}
-        </Button>
-      </div>
-
       {tracks.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground border border-dashed border-border rounded-lg">
           <Music2 size={24} className="opacity-40" />

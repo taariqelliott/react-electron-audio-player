@@ -10,6 +10,7 @@ type State = {
 type Action = {
   setFolders: (folders: Manifest[]) => void
   addFolder: (folder: Manifest) => void
+  removeFolder: (folderPath: string) => void
   updateActiveFolder: (activeFolder: Manifest | null) => void
   setActiveTrackFilename: (filename: string | null) => void
   applyManifest: (manifest: Manifest, oldFolderPath?: string) => void
@@ -21,6 +22,13 @@ export const useAlbumStore = create<State & Action>((set) => ({
   activeTrackFilename: null,
   setFolders: (folders) => set({ folders }),
   addFolder: (folder) => set((state) => ({ folders: [...state.folders, folder] })),
+  removeFolder: (folderPath) =>
+    set((state) => ({
+      folders: state.folders.filter((folder) => folder.folderPath !== folderPath),
+      activeFolder: state.activeFolder?.folderPath === folderPath ? null : state.activeFolder,
+      activeTrackFilename:
+        state.activeFolder?.folderPath === folderPath ? null : state.activeTrackFilename
+    })),
   updateActiveFolder: (activeFolder) => set({ activeFolder }),
   setActiveTrackFilename: (filename) => set({ activeTrackFilename: filename }),
   applyManifest: (manifest, oldFolderPath) =>

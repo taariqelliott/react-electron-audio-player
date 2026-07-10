@@ -136,6 +136,25 @@ const scanManifests = (libraryRoot: string): Manifest[] => {
     .filter((manifest): manifest is Manifest => manifest !== null)
 }
 
+// Library folders plus linked (imported in-place) folders from anywhere on disk
+const getAllManifests = (): Manifest[] => {
+  const config = readConfig()
+  const fromRoot = config.libraryRoot ? scanManifests(config.libraryRoot) : []
+  const linked = (config.linkedFolders ?? [])
+    .filter((folderPath) => fs.existsSync(manifestPathFor(folderPath)))
+    .map((folderPath) => {
+      try {
+        const manifest = readManifest(folderPath)
+        manifest.folderPath = folderPath
+        return manifest
+      } catch {
+        return null
+      }
+    })
+    .filter((manifest): manifest is Manifest => manifest !== null)
+  return [...fromRoot, ...linked]
+}
+
 const insertFolderRow = (manifest: Manifest): number => {
   const result = db
     .prepare(
@@ -172,8 +191,7 @@ const insertTrackRow = (folderId: number, folderPath: string, track: TrackEntry)
 }
 
 const rebuildIndex = (): { folders: number; tracks: number } => {
-  const { libraryRoot } = readConfig()
-  const manifests = libraryRoot ? scanManifests(libraryRoot) : []
+  const manifests = getAllManifests()
 
   const rebuild = db.transaction(() => {
     db.prepare('DELETE FROM tracks').run()
@@ -355,7 +373,7 @@ ipcMain.handle('change-library-root', async () => {
 
   return {
     libraryRoot: selectedLibraryRoot,
-    folders: scanManifests(selectedLibraryRoot).map(withMissingFlags)
+    folders: getAllManifests().map(withMissingFlags)
   }
 })
 
@@ -426,20 +444,36 @@ ipcMain.handle(
 
 ipcMain.handle('update-folder', (_event, { folderPath, name, artist, type }: UpdateFolderArgs) => {
   const manifest = readManifest(folderPath)
+  const config = readConfig()
+  const isLinked = (config.linkedFolders ?? []).includes(folderPath)
   let newFolderPath = folderPath
 
   if (name !== manifest.name) {
-    // Folder dirs are "<name>-<uuid>"; keep the uuid suffix when renaming
-    const basename = path.basename(folderPath)
-    const uuidSuffix = basename.slice(-36)
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      uuidSuffix
-    )
-    newFolderPath = path.join(
-      path.dirname(folderPath),
-      `${name}-${isUuid ? uuidSuffix : randomUUID()}`
-    )
-    fs.renameSync(folderPath, newFolderPath)
+    if (isLinked) {
+      // Linked folders keep their plain name — no uuid suffix
+      newFolderPath = path.join(path.dirname(folderPath), name)
+    } else {
+      // Library folder dirs are "<name>-<uuid>"; keep the uuid suffix when renaming
+      const basename = path.basename(folderPath)
+      const uuidSuffix = basename.slice(-36)
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        uuidSuffix
+      )
+      newFolderPath = path.join(
+        path.dirname(folderPath),
+        `${name}-${isUuid ? uuidSuffix : randomUUID()}`
+      )
+    }
+    if (newFolderPath !== folderPath) {
+      fs.renameSync(folderPath, newFolderPath)
+      if (isLinked) {
+        writeConfig({
+          linkedFolders: (config.linkedFolders ?? []).map((linked) =>
+            linked === folderPath ? newFolderPath : linked
+          )
+        })
+      }
+    }
   }
 
   manifest.name = name
@@ -463,9 +497,177 @@ ipcMain.handle('update-folder', (_event, { folderPath, name, artist, type }: Upd
 })
 
 ipcMain.handle('get-folders', async () => {
-  const { libraryRoot } = readConfig()
-  if (!libraryRoot) return []
-  return scanManifests(libraryRoot).map(withMissingFlags)
+  return getAllManifests().map(withMissingFlags)
+})
+
+ipcMain.handle('rescan-folder', async (_event, folderPath: string) => {
+  const manifest = readManifest(folderPath)
+  const entries = fs
+    .readdirSync(folderPath, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+  const audioFiles = new Set(
+    entries.filter((name) => AUDIO_EXTENSIONS.includes(path.extname(name).slice(1).toLowerCase()))
+  )
+
+  // Keep entries whose files still exist (preserving edits and order),
+  // drop entries whose files are gone, append anything new on disk
+  const kept = manifest.tracks
+    .filter((track) => audioFiles.has(track.filename))
+    .sort((a, b) => a.trackOrder - b.trackOrder)
+  const known = new Set(kept.map((track) => track.filename))
+
+  const added: TrackEntry[] = []
+  for (const filename of [...audioFiles].sort((a, b) => a.localeCompare(b))) {
+    if (known.has(filename)) continue
+    let duration = 0
+    try {
+      const metadata = await parseFile(path.join(folderPath, filename))
+      duration = Math.round(metadata.format.duration ?? 0)
+    } catch (error) {
+      console.error('Error parsing metadata:', error)
+    }
+    added.push({
+      filename,
+      title: filename.replace(/\.[^/.]+$/, ''),
+      artist: manifest.artist ?? '',
+      duration,
+      trackOrder: 0,
+      addedAt: new Date().toISOString()
+    })
+  }
+
+  manifest.tracks = [...kept, ...added].map((track, index) => ({
+    filename: track.filename,
+    title: track.title,
+    artist: track.artist,
+    duration: track.duration,
+    trackOrder: index + 1,
+    addedAt: track.addedAt
+  }))
+  manifest.totalTracks = manifest.tracks.length
+  if (!manifest.artwork) {
+    manifest.artwork =
+      entries.find((name) => /^(artwork|cover|folder|front)\.(jpe?g|png)$/i.test(name)) ?? ''
+  }
+  writeManifest(folderPath, manifest)
+
+  const resync = db.transaction(() => {
+    db.prepare('DELETE FROM tracks WHERE folderPath = ?').run(folderPath)
+    const folderId = folderIdFor(folderPath)
+    if (folderId !== null) {
+      for (const track of manifest.tracks) insertTrackRow(folderId, folderPath, track)
+      db.prepare(
+        'UPDATE folders SET totalTracks = ?, artwork = ?, updatedAt = ? WHERE folderPath = ?'
+      ).run(manifest.totalTracks, manifest.artwork ?? '', manifest.updatedAt, folderPath)
+    }
+  })
+  resync()
+
+  return withMissingFlags(manifest)
+})
+
+ipcMain.handle('delete-folder', (_event, folderPath: string) => {
+  const config = readConfig()
+  const isLinked = (config.linkedFolders ?? []).includes(folderPath)
+
+  if (isLinked) {
+    // Linked folders belong to the user — only remove the link, never the files
+    writeConfig({
+      linkedFolders: (config.linkedFolders ?? []).filter((linked) => linked !== folderPath)
+    })
+  } else {
+    // Safety rail: only ever recursively delete inside the library root
+    const insideLibrary = config.libraryRoot && path.dirname(folderPath) === config.libraryRoot
+    if (insideLibrary && fs.existsSync(folderPath)) {
+      fs.rmSync(folderPath, { recursive: true, force: true })
+    }
+  }
+
+  // Track rows cascade via the folderId foreign key
+  db.prepare('DELETE FROM folders WHERE folderPath = ?').run(folderPath)
+
+  return { linked: isLinked }
+})
+
+ipcMain.handle('import-folder', async (_event, providedPath?: string) => {
+  let folderPath = providedPath
+  if (!folderPath) {
+    const dialogResult = await dialog.showOpenDialog({ properties: ['openDirectory'] })
+    if (dialogResult.canceled) return null
+    folderPath = dialogResult.filePaths[0]
+  }
+
+  const config = readConfig()
+  let manifest: Manifest
+
+  if (fs.existsSync(manifestPathFor(folderPath))) {
+    manifest = readManifest(folderPath)
+    manifest.folderPath = folderPath
+  } else {
+    // Read the folder in place: index its audio files without copying anything
+    const entries = fs
+      .readdirSync(folderPath, { withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .sort((a, b) => a.localeCompare(b))
+    const audioFiles = entries.filter((name) =>
+      AUDIO_EXTENSIONS.includes(path.extname(name).slice(1).toLowerCase())
+    )
+    const artworkFile =
+      entries.find((name) => /^(artwork|cover|folder|front)\.(jpe?g|png)$/i.test(name)) ?? ''
+
+    const tracks: TrackEntry[] = []
+    for (const filename of audioFiles) {
+      let duration = 0
+      try {
+        const metadata = await parseFile(path.join(folderPath, filename))
+        duration = Math.round(metadata.format.duration ?? 0)
+      } catch (error) {
+        console.error('Error parsing metadata:', error)
+      }
+      tracks.push({
+        filename,
+        title: filename.replace(/\.[^/.]+$/, ''),
+        artist: '',
+        duration,
+        trackOrder: tracks.length + 1,
+        addedAt: new Date().toISOString()
+      })
+    }
+
+    manifest = {
+      name: path.basename(folderPath),
+      type: 'Folder',
+      artist: '',
+      artwork: artworkFile,
+      totalTracks: tracks.length,
+      folderPath,
+      tracks,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+    fs.writeFileSync(manifestPathFor(folderPath), JSON.stringify(manifest, null, 2))
+  }
+
+  // Folders outside the library root are tracked in config so scans find them
+  const insideLibrary = config.libraryRoot && path.dirname(folderPath) === config.libraryRoot
+  if (!insideLibrary) {
+    const linked = config.linkedFolders ?? []
+    if (!linked.includes(folderPath)) {
+      writeConfig({ linkedFolders: [...linked, folderPath] })
+    }
+  }
+
+  if (folderIdFor(folderPath) === null) {
+    const applyImport = db.transaction(() => {
+      const folderId = insertFolderRow(manifest)
+      for (const track of manifest.tracks) insertTrackRow(folderId, folderPath!, track)
+    })
+    applyImport()
+  }
+
+  return withMissingFlags(manifest)
 })
 
 // ─── IPC — Tracks ─────────────────────────────────────────────────────────────
