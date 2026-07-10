@@ -22,10 +22,14 @@ export function SearchCommand(): JSX.Element {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
 
-  // Cmd/Ctrl+K opens search
+  // Cmd/Ctrl+K opens search. Match the physical key (code) so CapsLock,
+  // Shift, and non-US keyboard layouts on Windows can't break the shortcut
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        (event.code === 'KeyK' || event.key.toLowerCase() === 'k')
+      ) {
         event.preventDefault()
         setOpen((prev) => !prev)
       }
