@@ -1,4 +1,5 @@
 import { getItem, setItem } from '@/hooks/localStorage'
+import { localFileUrl } from '@/lib/utils'
 import { useAlbumStore } from '@shared/store'
 import { FolderListProps } from '@shared/types'
 import { DiscIcon } from 'lucide-react'
@@ -40,7 +41,7 @@ export function FolderList({ folders }: FolderListProps): JSX.Element {
             <CardContent className="p-0 w-full h-full">
               {artwork ? (
                 <img
-                  src={`localfile://${folderPath}/artwork.jpg`}
+                  src={localFileUrl(folderPath, 'artwork.jpg')}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               ) : (

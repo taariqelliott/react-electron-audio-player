@@ -4,7 +4,9 @@ import { JSX, useEffect, useRef } from 'react'
 import { TrackTable } from './TrackTable'
 import { Badge } from './ui/badge'
 
-const artworkSrc = (folderPath: string): string => `localfile://${folderPath}/artwork.jpg`
+import { localFileUrl } from '@/lib/utils'
+
+const artworkSrc = (folderPath: string): string => localFileUrl(folderPath, 'artwork.jpg')
 
 const BAR_COUNT = 12
 const IDLE_HEIGHTS = [0.25, 0.4, 0.3, 0.45, 0.2, 0.35, 0.5, 0.3, 0.4, 0.25, 0.45, 0.3]

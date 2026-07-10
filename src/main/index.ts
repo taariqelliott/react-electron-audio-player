@@ -42,6 +42,13 @@ function createWindow(): void {
     mainWindow.show()
   })
 
+  // F12 toggles DevTools in packaged builds too — useful for tester bug reports
+  mainWindow.webContents.on('before-input-event', (_event, input) => {
+    if (input.type === 'keyDown' && input.key === 'F12') {
+      mainWindow.webContents.toggleDevTools()
+    }
+  })
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -215,7 +222,9 @@ app.whenReady().then(() => {
   // streams untainted (a tainted source is silenced by Web Audio).
   protocol.handle('localfile', async (request) => {
     // Query string is only a cache-buster; strip it before hitting the filesystem
-    const filePath = decodeURIComponent(request.url.slice('localfile://'.length).split('?')[0])
+    let filePath = decodeURIComponent(request.url.slice('localfile://'.length).split('?')[0])
+    // Windows URLs carry a leading slash before the drive letter (/C:/…)
+    if (/^\/[A-Za-z]:/.test(filePath)) filePath = filePath.slice(1)
     if (!fs.existsSync(filePath)) return new Response('Not found', { status: 404 })
 
     const { size } = fs.statSync(filePath)

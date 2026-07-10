@@ -1,3 +1,4 @@
+import { localFileUrl } from '@/lib/utils'
 import { useAlbumStore } from '@shared/store'
 import { TrackEntry } from '@shared/types'
 import { Pause, Play, SkipBack, SkipForward, Square, Volume1, Volume2, VolumeX } from 'lucide-react'
@@ -115,7 +116,7 @@ export default function App(): JSX.Element {
   const handlePlayTrack = (track: TrackEntry): void => {
     if (!activeFolder) return
     setActiveTrackFilename(track.filename)
-    const url = `localfile://${activeFolder.folderPath}/${encodeURIComponent(track.filename)}`
+    const url = localFileUrl(activeFolder.folderPath, track.filename)
     loadTrack(url, track.title || track.filename)
   }
 
@@ -155,7 +156,7 @@ export default function App(): JSX.Element {
           onLibraryRootChanged={applyLibraryRoot}
           username={appConfig?.username || 'Set your name'}
           avatarUrl={
-            appConfig?.avatarPath ? `localfile://${appConfig.avatarPath}?v=${avatarVersion}` : null
+            appConfig?.avatarPath ? `${localFileUrl(appConfig.avatarPath)}?v=${avatarVersion}` : null
           }
           onProfileUpdated={(config) => {
             applyConfig(config)

@@ -30,7 +30,7 @@ import {
 } from 'lucide-react'
 import { AppConfig } from '@shared/types'
 import { JSX, useState } from 'react'
-import { initialsFor } from '@/lib/utils'
+import { initialsFor, localFileUrl } from '@/lib/utils'
 import { FolderEditDialog } from './FolderEditDialog'
 import { SearchCommand } from './SearchCommand'
 import { SettingsDialog } from './SettingsDialog'
@@ -155,7 +155,7 @@ export function AppSidebar({
                         >
                           <div className="flex items-center justify-center gap-2 min-w-0">
                             <Avatar size="sm">
-                              <AvatarImage src={`localfile://${album.folderPath}/artwork.jpg`} />
+                              <AvatarImage src={localFileUrl(album.folderPath, 'artwork.jpg')} />
                             </Avatar>
                             <p className="truncate">{album.name}</p>
                           </div>
