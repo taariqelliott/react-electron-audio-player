@@ -476,6 +476,15 @@ ipcMain.handle('update-folder', (_event, { folderPath, name, artist, type }: Upd
     }
   }
 
+  // Tracks still inheriting the folder artist (empty or matching the old
+  // value) follow the new one; individually edited tracks keep theirs
+  const previousArtist = manifest.artist
+  if (artist !== previousArtist) {
+    manifest.tracks = manifest.tracks.map((track) =>
+      track.artist === '' || track.artist === previousArtist ? { ...track, artist } : track
+    )
+  }
+
   manifest.name = name
   manifest.artist = artist
   manifest.type = type
@@ -490,6 +499,11 @@ ipcMain.handle('update-folder', (_event, { folderPath, name, artist, type }: Upd
       newFolderPath,
       folderPath
     )
+    if (artist !== previousArtist) {
+      db.prepare(
+        "UPDATE tracks SET artist = ? WHERE folderPath = ? AND (artist = '' OR artist = ?)"
+      ).run(artist, newFolderPath, previousArtist)
+    }
   })
   applyUpdate()
 
