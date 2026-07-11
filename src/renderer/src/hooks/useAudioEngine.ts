@@ -14,6 +14,7 @@ export type AudioEngine = {
   seek: (seconds: number) => void
   setVolume: (value: number) => void
   getAnalyser: () => AnalyserNode | null
+  setOnTrackEnded: (callback: (() => void) | null) => void
 }
 
 export function useAudioEngine(): AudioEngine {
@@ -24,6 +25,7 @@ export function useAudioEngine(): AudioEngine {
   const animationFrameIdRef = useRef<number | null>(null)
   const objectUrlRef = useRef<string | null>(null)
   const volumeRef = useRef(1)
+  const onTrackEndedRef = useRef<(() => void) | null>(null)
 
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0)
@@ -104,6 +106,7 @@ export function useAudioEngine(): AudioEngine {
       audio.addEventListener('ended', () => {
         audio.currentTime = 0
         setCurrentPlaybackTime(0)
+        onTrackEndedRef.current?.()
       })
       audio.addEventListener('error', () => {
         console.error('Audio playback error:', audio.error)
@@ -219,6 +222,10 @@ export function useAudioEngine(): AudioEngine {
 
   const getAnalyser = useCallback((): AnalyserNode | null => analyserNodeRef.current, [])
 
+  const setOnTrackEnded = useCallback((callback: (() => void) | null): void => {
+    onTrackEndedRef.current = callback
+  }, [])
+
   useEffect(() => {
     return (): void => {
       cancelPositionLoop()
@@ -242,6 +249,7 @@ export function useAudioEngine(): AudioEngine {
     stop,
     seek,
     setVolume,
-    getAnalyser
+    getAnalyser,
+    setOnTrackEnded
   }
 }

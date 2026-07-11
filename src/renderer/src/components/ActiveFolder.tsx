@@ -114,7 +114,7 @@ export default function ActiveFolder({
   }
 
   return (
-    <div className="w-full max-w-3xl flex-1 min-h-0 flex flex-col">
+    <div className="w-full max-w-6xl flex-1 min-h-0 flex flex-col">
       {/* Album header + track toolbar are fixed; only the list below scrolls */}
       <div className="shrink-0 flex flex-col gap-3 pt-4 pb-2">
         <div className="relative w-full overflow-hidden rounded-xl border border-border shadow-md">

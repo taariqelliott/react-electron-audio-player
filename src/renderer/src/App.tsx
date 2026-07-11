@@ -5,6 +5,8 @@ import {
   FolderOpen,
   Pause,
   Play,
+  Repeat,
+  Repeat1,
   SkipBack,
   SkipForward,
   Square,
@@ -12,7 +14,7 @@ import {
   Volume2,
   VolumeX
 } from 'lucide-react'
-import { JSX, useRef, useState } from 'react'
+import { JSX, useEffect, useRef, useState } from 'react'
 import ActiveFolder from './components/ActiveFolder'
 import { AppSidebar } from './components/AppSidebar'
 import { CreateFolderForm } from './components/CreateFolderForm'
@@ -35,6 +37,8 @@ const formatTime = (seconds: number): string => {
 
 const toNumber = (value: number | readonly number[]): number =>
   Array.isArray(value) ? value[0] : (value as number)
+
+type LoopMode = 'off' | 'album' | 'track'
 
 type SeekSliderProps = {
   currentTime: number
@@ -75,7 +79,8 @@ export default function App(): JSX.Element {
     stop,
     seek,
     setVolume,
-    getAnalyser
+    getAnalyser,
+    setOnTrackEnded
   } = useAudioEngine()
 
   const {
@@ -102,6 +107,7 @@ export default function App(): JSX.Element {
   const activeTrackFilename = useAlbumStore((state) => state.activeTrackFilename)
   const setActiveTrackFilename = useAlbumStore((state) => state.setActiveTrackFilename)
   const [avatarVersion, setAvatarVersion] = useState(0)
+  const [loopMode, setLoopMode] = useState<LoopMode>('off')
   const lastVolumeRef = useRef(1)
 
   const toggleMute = (): void => {
@@ -113,16 +119,31 @@ export default function App(): JSX.Element {
     }
   }
 
-  if (isLoadingConfig) return <LoadingScreen />
-
-  if (appConfig?.libraryRoot === null || !libraryRootExists) {
-    return (
-      <SetupScreen
-        libraryRootIsNull={appConfig?.libraryRoot === null}
-        onSelectLibraryRoot={selectLibraryRoot}
-      />
-    )
+  const cycleLoopMode = (): void => {
+    setLoopMode((mode) => (mode === 'off' ? 'album' : mode === 'album' ? 'track' : 'off'))
   }
+
+  // Space toggles play/pause like any media player, unless the user is typing
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.code !== 'Space') return
+      const target = event.target
+      if (
+        target instanceof HTMLElement &&
+        target.closest('input, textarea, select, [contenteditable="true"]')
+      ) {
+        return
+      }
+      event.preventDefault()
+      if (isPlaying) {
+        pause()
+      } else {
+        play()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return (): void => window.removeEventListener('keydown', handleKeyDown)
+  })
 
   const handlePlayTrack = (track: TrackEntry): void => {
     if (!activeFolder) return
@@ -155,7 +176,30 @@ export default function App(): JSX.Element {
     )
   }
 
+  // When a track finishes: repeat it, continue through the album, or stop
+  useEffect(() => {
+    setOnTrackEnded(() => {
+      if (loopMode === 'track') {
+        play()
+      } else if (loopMode === 'album') {
+        playNext()
+      }
+    })
+  })
+
+  if (isLoadingConfig) return <LoadingScreen />
+
+  if (appConfig?.libraryRoot === null || !libraryRootExists) {
+    return (
+      <SetupScreen
+        libraryRootIsNull={appConfig?.libraryRoot === null}
+        onSelectLibraryRoot={selectLibraryRoot}
+      />
+    )
+  }
+
   const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2
+  const LoopIcon = loopMode === 'track' ? Repeat1 : Repeat
 
   return (
     <TooltipProvider delay={300}>
@@ -304,6 +348,27 @@ export default function App(): JSX.Element {
                       <SkipForward size={14} />
                     </TooltipTrigger>
                     <TooltipContent>Next track</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 ${loopMode !== 'off' ? 'text-primary hover:text-primary' : ''}`}
+                          onClick={cycleLoopMode}
+                        />
+                      }
+                    >
+                      <LoopIcon size={14} />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {loopMode === 'off'
+                        ? 'Loop off — click to loop album'
+                        : loopMode === 'album'
+                          ? 'Looping album — click to loop song'
+                          : 'Looping song — click to turn off'}
+                    </TooltipContent>
                   </Tooltip>
                 </div>
                 <SeekSlider
