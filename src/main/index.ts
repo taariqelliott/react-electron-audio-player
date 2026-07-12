@@ -33,8 +33,8 @@ function createWindow(): void {
       sandbox: false,
       nodeIntegration: true
     },
-    minWidth: 900,
-    minHeight: 700
+    minWidth: 1000,
+    minHeight: 800
   })
 
   mainWindow.on('ready-to-show', () => {
