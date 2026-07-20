@@ -40,8 +40,6 @@ export function useAudioEngine(): AudioEngine {
     }
   }
 
-  // Short gain ramps around every discontinuity (pause/stop/seek/switch) so the
-  // waveform never jumps to zero mid-cycle, which is audible as a click/pop
   const FADE_SECONDS = 0.03
 
   const rampGain = (target: number, seconds: number): void => {
@@ -60,8 +58,6 @@ export function useAudioEngine(): AudioEngine {
     action()
   }
 
-  // Streams through a media element so playback starts without decoding the
-  // whole file. Chain: element → gain → analyser → destination.
   const ensureGraph = (): HTMLAudioElement => {
     if (!audioElementRef.current) {
       const audioContext = new AudioContext()
@@ -73,13 +69,10 @@ export function useAudioEngine(): AudioEngine {
       analyserNode.connect(audioContext.destination)
 
       const audio = new Audio()
-      // Required so the cross-origin localfile:// stream isn't silenced by Web Audio
       audio.crossOrigin = 'anonymous'
       audio.preload = 'auto'
       audioContext.createMediaElementSource(audio).connect(gainNode)
 
-      // Throttled to ~5 updates/sec: a per-frame setState re-renders the whole
-      // app tree 60×/sec, which competes with audio rendering in this process
       let lastShownTime = -1
       const updatePosition = (): void => {
         const currentTime = audio.currentTime
@@ -111,8 +104,6 @@ export function useAudioEngine(): AudioEngine {
       audio.addEventListener('error', () => {
         console.error('Audio playback error:', audio.error)
       })
-      // Diagnostics: these fire when the decoder runs out of buffered data,
-      // which is audible as a dropout — points at the file-serving side
       audio.addEventListener('waiting', () => {
         console.warn(`[audio] waiting: decoder starved at ${audio.currentTime.toFixed(2)}s`)
       })

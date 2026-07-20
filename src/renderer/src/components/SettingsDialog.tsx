@@ -33,14 +33,12 @@ function ProfileSection({
 
   const isDirty = draftName.trim() !== username
 
-  // Uploads immediately on selection — no separate save step for the picture
   const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
     setAvatarError(null)
 
-    // Reject formats Chromium can't render (e.g. HEIC) before persisting
     const objectUrl = URL.createObjectURL(file)
     try {
       const probe = new Image()

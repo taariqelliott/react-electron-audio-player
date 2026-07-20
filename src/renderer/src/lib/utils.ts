@@ -5,9 +5,6 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs))
 }
 
-// Builds a localfile:// URL that survives URL parsing on every platform.
-// Windows paths (C:\Users\…) need a leading slash and full encoding, or the
-// drive letter is parsed as a URL host and the request never resolves.
 export function localFileUrl(basePath: string, ...segments: string[]): string {
   const normalized = basePath.replace(/\\/g, '/')
   const withLeadingSlash = normalized.startsWith('/') ? normalized : `/${normalized}`

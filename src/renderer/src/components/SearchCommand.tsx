@@ -22,8 +22,6 @@ export function SearchCommand(): JSX.Element {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
 
-  // Cmd/Ctrl+K opens search. Match the physical key (code) so CapsLock,
-  // Shift, and non-US keyboard layouts on Windows can't break the shortcut
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (
@@ -38,7 +36,6 @@ export function SearchCommand(): JSX.Element {
     return (): void => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // Debounced query against the SQLite index
   useEffect(() => {
     if (!query.trim()) return undefined
     const timeoutId = setTimeout(async () => {

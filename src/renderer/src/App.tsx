@@ -123,7 +123,6 @@ export default function App(): JSX.Element {
     setLoopMode((mode) => (mode === 'off' ? 'album' : mode === 'album' ? 'track' : 'off'))
   }
 
-  // Space toggles play/pause like any media player, unless the user is typing
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (event.code !== 'Space') return
@@ -166,7 +165,6 @@ export default function App(): JSX.Element {
 
   const playPrevious = (): void => {
     if (playableTracks.length === 0) return
-    // Restart the current track when past 3s, otherwise jump to the previous one
     if (currentPlaybackTime > 3 && currentTrackIndex !== -1) {
       seek(0)
       return
@@ -176,7 +174,6 @@ export default function App(): JSX.Element {
     )
   }
 
-  // When a track finishes: repeat it, continue through the album, or stop
   useEffect(() => {
     setOnTrackEnded(() => {
       if (loopMode === 'track') {
@@ -264,7 +261,6 @@ export default function App(): JSX.Element {
               isPlaying={isPlaying}
             />
           </div>
-          {/* Album shelf: always visible, wraps like iTunes and scrolls vertically */}
           <div className="shrink-0 border-t border-border/40">
             {isLoadingFolders ? (
               <div className="flex flex-wrap gap-3 justify-center max-h-56 overflow-hidden px-4 py-3">
@@ -403,15 +399,6 @@ export default function App(): JSX.Element {
                   aria-label="Volume"
                 />
               </div>
-
-              {/* <div className="w-44 shrink-0">
-                <Input
-                  type="file"
-                  accept="audio/*"
-                  onChange={handleFileUpload}
-                  className="text-xs cursor-pointer hover:opacity-80 transition-opacity duration-150"
-                />
-              </div> */}
             </div>
           </div>
         </SidebarInset>

@@ -111,7 +111,6 @@ export function AppSidebar({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [folderToDelete, setFolderToDelete] = useState<Manifest | null>(null)
 
-  // Linked folders live outside the library root — deleting only unlinks them
   const isLinked = (folder: Manifest): boolean =>
     !libraryRoot || !folder.folderPath.startsWith(`${libraryRoot}/`)
 

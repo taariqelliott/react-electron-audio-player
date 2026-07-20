@@ -223,7 +223,6 @@ export function TrackTable({ folder, onPlayTrack }: TrackTableProps): JSX.Elemen
       trackOrder: index + 1
     }))
 
-    // Optimistic update for instant feel, then persist through main
     applyManifest({ ...folder, tracks: reordered })
     const updated = await window.musicPlayer.reorderTracks({
       folderPath: folder.folderPath,

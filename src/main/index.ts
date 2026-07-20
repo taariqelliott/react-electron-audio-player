@@ -20,8 +20,6 @@ import icon from '../../resources/icon.png?asset'
 
 let db: Database.Database
 
-// ─── Window ───────────────────────────────────────────────────────────────────
-
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     roundedCorners: false,
@@ -42,7 +40,6 @@ function createWindow(): void {
     mainWindow.show()
   })
 
-  // F12 toggles DevTools in packaged builds too — useful for tester bug reports
   mainWindow.webContents.on('before-input-event', (_event, input) => {
     if (input.type === 'keyDown' && input.key === 'F12') {
       mainWindow.webContents.toggleDevTools()
@@ -61,13 +58,10 @@ function createWindow(): void {
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 const configPath = (): string => path.join(app.getPath('userData'), 'config.json')
 
 const readConfig = (): AppConfig => JSON.parse(fs.readFileSync(configPath(), 'utf-8'))
 
-// Merges updates so profile fields survive library-root changes and vice versa
 const writeConfig = (updates: Partial<AppConfig>): void => {
   const current = fs.existsSync(configPath())
     ? JSON.parse(fs.readFileSync(configPath(), 'utf-8'))
@@ -85,7 +79,6 @@ const writeManifest = (folderPath: string, manifest: Manifest): void => {
   fs.writeFileSync(manifestPathFor(folderPath), JSON.stringify(manifest, null, 2))
 }
 
-// Flags tracks whose files are gone from disk and returns tracks sorted by order
 const withMissingFlags = (manifest: Manifest): Manifest => ({
   ...manifest,
   tracks: [...(manifest.tracks ?? [])]
@@ -96,7 +89,6 @@ const withMissingFlags = (manifest: Manifest): Manifest => ({
     }))
 })
 
-// Avoids clobbering an existing file by appending a numeric suffix
 const uniqueDestination = (dir: string, filename: string): string => {
   const ext = path.extname(filename)
   const base = path.basename(filename, ext)
@@ -126,7 +118,6 @@ const scanManifests = (libraryRoot: string): Manifest[] => {
       if (!fs.existsSync(manifestPathFor(folderPath))) return null
       try {
         const manifest = readManifest(folderPath)
-        // Keep manifest paths in sync if the library was moved on disk
         manifest.folderPath = folderPath
         return manifest
       } catch {
@@ -136,7 +127,6 @@ const scanManifests = (libraryRoot: string): Manifest[] => {
     .filter((manifest): manifest is Manifest => manifest !== null)
 }
 
-// Library folders plus linked (imported in-place) folders from anywhere on disk
 const getAllManifests = (): Manifest[] => {
   const config = readConfig()
   const fromRoot = config.libraryRoot ? scanManifests(config.libraryRoot) : []
@@ -210,8 +200,6 @@ const rebuildIndex = (): { folders: number; tracks: number } => {
   return rebuild()
 }
 
-// ─── App Ready ────────────────────────────────────────────────────────────────
-
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'localfile',
@@ -235,13 +223,8 @@ app.whenReady().then(() => {
     '.png': 'image/png'
   }
 
-  // Serves files with Content-Length and Range support so media elements get a
-  // finite, seekable duration. The CORS header keeps crossOrigin="anonymous"
-  // streams untainted (a tainted source is silenced by Web Audio).
   protocol.handle('localfile', async (request) => {
-    // Query string is only a cache-buster; strip it before hitting the filesystem
     let filePath = decodeURIComponent(request.url.slice('localfile://'.length).split('?')[0])
-    // Windows URLs carry a leading slash before the drive letter (/C:/…)
     if (/^\/[A-Za-z]:/.test(filePath)) filePath = filePath.slice(1)
     if (!fs.existsSync(filePath)) return new Response('Not found', { status: 404 })
 
@@ -282,13 +265,9 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // ─── Config ─────────────────────────────────────────────────────────────
-
   if (!fs.existsSync(configPath())) {
     writeConfig({ libraryRoot: null })
   }
-
-  // ─── Database ───────────────────────────────────────────────────────────
 
   const libraryDatabasePath = path.join(app.getPath('userData'), 'library.db')
   db = new Database(libraryDatabasePath)
@@ -324,7 +303,6 @@ app.whenReady().then(() => {
     )
   `)
 
-  // Populate the index on first launch with an empty database
   const folderCount = db.prepare('SELECT COUNT(*) AS count FROM folders').get() as {
     count: number
   }
@@ -333,16 +311,12 @@ app.whenReady().then(() => {
     rebuildIndex()
   }
 
-  // ─── Launch ─────────────────────────────────────────────────────────────
-
   createWindow()
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
-
-// ─── IPC — Config ─────────────────────────────────────────────────────────────
 
 ipcMain.handle('read-config-file', () => {
   return readConfig()
@@ -381,8 +355,6 @@ ipcMain.handle('library-root-exists', (_event, libraryRootPath: string): boolean
   return fs.existsSync(libraryRootPath)
 })
 
-// ─── IPC — Profile ────────────────────────────────────────────────────────────
-
 ipcMain.handle('update-profile', (_event, { username, avatarSourcePath }: UpdateProfileArgs) => {
   const updates: Partial<AppConfig> = { username }
 
@@ -395,8 +367,6 @@ ipcMain.handle('update-profile', (_event, { username, avatarSourcePath }: Update
   writeConfig(updates)
   return readConfig()
 })
-
-// ─── IPC — Folders ────────────────────────────────────────────────────────────
 
 ipcMain.handle('create-folder', async (_event, { name, type, artist }: CreateFolderArgs) => {
   const config = readConfig()
@@ -450,10 +420,8 @@ ipcMain.handle('update-folder', (_event, { folderPath, name, artist, type }: Upd
 
   if (name !== manifest.name) {
     if (isLinked) {
-      // Linked folders keep their plain name — no uuid suffix
       newFolderPath = path.join(path.dirname(folderPath), name)
     } else {
-      // Library folder dirs are "<name>-<uuid>"; keep the uuid suffix when renaming
       const basename = path.basename(folderPath)
       const uuidSuffix = basename.slice(-36)
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -476,8 +444,6 @@ ipcMain.handle('update-folder', (_event, { folderPath, name, artist, type }: Upd
     }
   }
 
-  // Tracks still inheriting the folder artist (empty or matching the old
-  // value) follow the new one; individually edited tracks keep theirs
   const previousArtist = manifest.artist
   if (artist !== previousArtist) {
     manifest.tracks = manifest.tracks.map((track) =>
@@ -524,8 +490,6 @@ ipcMain.handle('rescan-folder', async (_event, folderPath: string) => {
     entries.filter((name) => AUDIO_EXTENSIONS.includes(path.extname(name).slice(1).toLowerCase()))
   )
 
-  // Keep entries whose files still exist (preserving edits and order),
-  // drop entries whose files are gone, append anything new on disk
   const kept = manifest.tracks
     .filter((track) => audioFiles.has(track.filename))
     .sort((a, b) => a.trackOrder - b.trackOrder)
@@ -586,19 +550,16 @@ ipcMain.handle('delete-folder', (_event, folderPath: string) => {
   const isLinked = (config.linkedFolders ?? []).includes(folderPath)
 
   if (isLinked) {
-    // Linked folders belong to the user — only remove the link, never the files
     writeConfig({
       linkedFolders: (config.linkedFolders ?? []).filter((linked) => linked !== folderPath)
     })
   } else {
-    // Safety rail: only ever recursively delete inside the library root
     const insideLibrary = config.libraryRoot && path.dirname(folderPath) === config.libraryRoot
     if (insideLibrary && fs.existsSync(folderPath)) {
       fs.rmSync(folderPath, { recursive: true, force: true })
     }
   }
 
-  // Track rows cascade via the folderId foreign key
   db.prepare('DELETE FROM folders WHERE folderPath = ?').run(folderPath)
 
   return { linked: isLinked }
@@ -619,7 +580,6 @@ ipcMain.handle('import-folder', async (_event, providedPath?: string) => {
     manifest = readManifest(folderPath)
     manifest.folderPath = folderPath
   } else {
-    // Read the folder in place: index its audio files without copying anything
     const entries = fs
       .readdirSync(folderPath, { withFileTypes: true })
       .filter((entry) => entry.isFile())
@@ -664,7 +624,6 @@ ipcMain.handle('import-folder', async (_event, providedPath?: string) => {
     fs.writeFileSync(manifestPathFor(folderPath), JSON.stringify(manifest, null, 2))
   }
 
-  // Folders outside the library root are tracked in config so scans find them
   const insideLibrary = config.libraryRoot && path.dirname(folderPath) === config.libraryRoot
   if (!insideLibrary) {
     const linked = config.linkedFolders ?? []
@@ -683,8 +642,6 @@ ipcMain.handle('import-folder', async (_event, providedPath?: string) => {
 
   return withMissingFlags(manifest)
 })
-
-// ─── IPC — Tracks ─────────────────────────────────────────────────────────────
 
 const AUDIO_EXTENSIONS = ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac', 'opus', 'webm', 'aiff']
 
@@ -756,7 +713,6 @@ ipcMain.handle(
         byFilename.delete(filename)
       }
     })
-    // Any tracks not present in the new order keep their relative order at the end
     byFilename.forEach((track) => {
       track.trackOrder = reordered.length + 1
       reordered.push(track)
@@ -845,8 +801,6 @@ ipcMain.handle(
   }
 )
 
-// ─── IPC — Search ─────────────────────────────────────────────────────────────
-
 ipcMain.handle('search-library', (_event, query: string): SearchResult[] => {
   const trimmed = query.trim()
   if (!trimmed) return []
@@ -900,13 +854,9 @@ ipcMain.handle('search-library', (_event, query: string): SearchResult[] => {
   ]
 })
 
-// ─── IPC — Index ──────────────────────────────────────────────────────────────
-
 ipcMain.handle('rebuild-index', () => {
   return rebuildIndex()
 })
-
-// ─── Cleanup ──────────────────────────────────────────────────────────────────
 
 app.on('window-all-closed', () => {
   db.close()

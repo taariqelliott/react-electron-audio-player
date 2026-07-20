@@ -39,7 +39,6 @@ function EqualizerBars({ getAnalyser, isPlaying }: EqualizerBarsProps): JSX.Elem
     if (!analyser) return undefined
 
     const frequencyData = new Uint8Array(analyser.frequencyBinCount)
-    // Sample low-to-mid bins where most musical energy lives
     const bandSize = Math.floor(analyser.frequencyBinCount / 2 / BAR_COUNT)
 
     const tick = (): void => {
@@ -115,10 +114,8 @@ export default function ActiveFolder({
 
   return (
     <div className="w-full max-w-6xl flex-1 min-h-0 flex flex-col">
-      {/* Album header + track toolbar are fixed; only the list below scrolls */}
       <div className="shrink-0 flex flex-col gap-3 pt-4 pb-2">
         <div className="relative w-full overflow-hidden rounded-xl border border-border shadow-md">
-          {/* blurred artwork backdrop */}
           {artwork && (
             <img
               src={artworkSrc(folderPath, artwork)}
@@ -129,7 +126,6 @@ export default function ActiveFolder({
           <div className="absolute inset-0 bg-card/80 backdrop-blur-sm" />
 
           <div className="relative flex items-center gap-4 px-5 py-4">
-            {/* artwork thumbnail */}
             <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden shadow-lg ring-1 ring-black/10 dark:ring-white/10 bg-muted">
               {artwork ? (
                 <img src={artworkSrc(folderPath, artwork)} className="w-full h-full object-cover" />
@@ -140,13 +136,11 @@ export default function ActiveFolder({
               )}
             </div>
 
-            {/* text info */}
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm leading-tight truncate text-foreground">{name}</p>
               <p className="text-xs text-muted-foreground truncate mt-0.5">{artist}</p>
             </div>
 
-            {/* right side: badge + equalizer */}
             <div className="shrink-0 flex flex-col items-end gap-2">
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                 {type}
