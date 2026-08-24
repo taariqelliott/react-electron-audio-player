@@ -133,7 +133,7 @@ export function AppSidebar({
                 <AudioLines className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">Audio Player v2</span>
+                <span className="truncate font-semibold">Overtone</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

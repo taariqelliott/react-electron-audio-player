@@ -21,27 +21,33 @@ if (!dirByArch[arch]) {
 
 const run = (cmd) => execSync(cmd, { stdio: 'inherit' })
 const version = require('../package.json').version
+const productName = 'Overtone'
 const dist = path.join(__dirname, '..', 'dist')
-const appPath = path.join(dist, dirByArch[arch], 'react-electron-audio-player.app')
+const appPath = path.join(dist, dirByArch[arch], `${productName}.app`)
 
 run(`codesign --force --deep --sign - "${appPath}"`)
 
-const zipPath = path.join(dist, `AudioPlayer-${version}-${arch}.zip`)
+const zipPath = path.join(dist, `${productName}-${version}-${arch}.zip`)
 fs.rmSync(zipPath, { force: true })
 run(`ditto -c -k --keepParent "${appPath}" "${zipPath}"`)
 
 const staging = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-player-dmg-'))
 run(`cp -R "${appPath}" "${staging}/"`)
 fs.symlinkSync('/Applications', path.join(staging, 'Applications'))
-const dmgPath = path.join(dist, `AudioPlayer-${version}-${arch}.dmg`)
+const dmgPath = path.join(dist, `${productName}-${version}-${arch}.dmg`)
 fs.rmSync(dmgPath, { force: true })
 run(
-  `hdiutil create -volname "Audio Player" -srcfolder "${staging}" -ov -quiet -format UDZO "${dmgPath}"`
+  `hdiutil create -volname "${productName}" -srcfolder "${staging}" -ov -quiet -format UDZO "${dmgPath}"`
 )
 fs.rmSync(staging, { recursive: true, force: true })
 
 for (const file of fs.readdirSync(dist)) {
-  if (/^react-electron-audio-player-.*(mac\.zip|\.dmg)(\.blockmap)?$/.test(file)) {
+  const isFinalArtifact = new RegExp(
+    `^${productName}-${version}-${arch}\\.(zip|dmg)(\\.blockmap)?$`
+  ).test(file)
+  const isRawArtifact =
+    /^(react-electron-audio-player|Overtone)-.*(mac\.zip|\.dmg)(\.blockmap)?$/.test(file)
+  if (isRawArtifact && !isFinalArtifact) {
     fs.rmSync(path.join(dist, file), { force: true })
     console.log(`  • removed unsafe artifact ${file}`)
   }
