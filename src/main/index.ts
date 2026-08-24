@@ -32,7 +32,8 @@ function createWindow(): void {
       nodeIntegration: true
     },
     minWidth: 1000,
-    minHeight: 800
+    minHeight: 800,
+    title: 'Overtone'
   })
 
   mainWindow.on('ready-to-show', () => {

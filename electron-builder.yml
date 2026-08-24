@@ -1,5 +1,5 @@
-appId: com.taariqelliott.audio-player
-productName: react-electron-audio-player
+appId: com.taariqelliott.Overtone
+productName: Overtone
 directories:
   buildResources: build
 afterPack: scripts/fix-win-native.cjs
@@ -16,7 +16,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: react-electron-audio-player
+  executableName: Overtone
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
