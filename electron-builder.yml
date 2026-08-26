@@ -32,6 +32,15 @@ mac:
   notarize: false
 dmg:
   artifactName: ${productName}-${version}.${ext}
+  background: build/background.png
+  contents:
+    - x: 130
+      y: 220
+      type: file
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
 linux:
   target:
     - AppImage

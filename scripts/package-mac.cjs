@@ -1,15 +1,15 @@
 /**
  * Post-build macOS packaging. electron-builder's own zip/dmg artifacts are
  * created before the ad-hoc re-sign that makes the app launchable on modern
- * macOS, so they ship a broken bundle. This script re-signs the packed app,
- * produces the real distributables (zip + dmg with an Applications shortcut),
- * and deletes electron-builder's unsafe mac artifacts.
+ * macOS, so they ship a broken bundle. This script re-signs the packed app
+ * and the dmg electron-builder already built (background/icon layout comes
+ * from electron-builder.yml), renames artifacts with an arch suffix, and
+ * deletes electron-builder's unsafe/unsigned mac artifacts.
  *
  * Usage: node scripts/package-mac.cjs <arm64|intel|universal>
  */
 const { execSync } = require('node:child_process')
 const fs = require('node:fs')
-const os = require('node:os')
 const path = require('node:path')
 
 const arch = process.argv[2]
@@ -25,21 +25,27 @@ const productName = 'Overtone'
 const dist = path.join(__dirname, '..', 'dist')
 const appPath = path.join(dist, dirByArch[arch], `${productName}.app`)
 
+// Re-sign the packed app so it launches on modern macOS
 run(`codesign --force --deep --sign - "${appPath}"`)
 
+// Re-build the zip from the re-signed app
 const zipPath = path.join(dist, `${productName}-${version}-${arch}.zip`)
 fs.rmSync(zipPath, { force: true })
 run(`ditto -c -k --keepParent "${appPath}" "${zipPath}"`)
 
-const staging = fs.mkdtempSync(path.join(os.tmpdir(), 'audio-player-dmg-'))
-run(`cp -R "${appPath}" "${staging}/"`)
-fs.symlinkSync('/Applications', path.join(staging, 'Applications'))
+// electron-builder already built a styled dmg (background/icon layout from
+// electron-builder.yml) using its artifactName pattern: ${productName}-${version}.${ext}
+const rawDmgPath = path.join(dist, `${productName}-${version}.dmg`)
 const dmgPath = path.join(dist, `${productName}-${version}-${arch}.dmg`)
+
+if (!fs.existsSync(rawDmgPath)) {
+  console.error(`Expected electron-builder dmg not found at ${rawDmgPath}`)
+  process.exit(1)
+}
+
 fs.rmSync(dmgPath, { force: true })
-run(
-  `hdiutil create -volname "${productName}" -srcfolder "${staging}" -ov -quiet -format UDZO "${dmgPath}"`
-)
-fs.rmSync(staging, { recursive: true, force: true })
+fs.renameSync(rawDmgPath, dmgPath)
+run(`codesign --force --sign - "${dmgPath}"`)
 
 for (const file of fs.readdirSync(dist)) {
   const isFinalArtifact = new RegExp(
