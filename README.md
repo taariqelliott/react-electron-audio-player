@@ -1,4 +1,4 @@
-# Audio Player
+# Overtone
 
 A free, open-source, local-first desktop music player. Your library lives in a
 folder on your disk — no accounts, no cloud, no tracking.
