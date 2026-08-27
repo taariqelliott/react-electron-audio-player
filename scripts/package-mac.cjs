@@ -75,13 +75,19 @@ run(`hdiutil convert "${rwDmgPath}" -format UDZO -o "${dmgPath}"`)
 fs.rmSync(rwDmgPath, { force: true })
 run(`codesign --force --sign - "${dmgPath}"`)
 
+// Only remove electron-builder's own raw output for THIS run — never touch
+// other archs' already-finished artifacts sitting in dist from earlier
+// steps in build:all. Raw filenames always follow electron-builder's own
+// pattern (dmg has no arch suffix; zip always ends in "-mac.zip"), which
+// never collides with our final "-${arch}.zip" / "-${arch}.dmg" names.
+const rawZip = new RegExp(
+  `^(react-electron-audio-player|${productName})-${version}(-${arch})?-mac\\.zip(\\.blockmap)?$`
+)
+const rawDmgFile = new RegExp(
+  `^(react-electron-audio-player|${productName})-${version}\\.dmg(\\.blockmap)?$`
+)
 for (const file of fs.readdirSync(dist)) {
-  const isFinalArtifact = new RegExp(
-    `^${productName}-${version}-${arch}\\.(zip|dmg)(\\.blockmap)?$`
-  ).test(file)
-  const isRawArtifact =
-    /^(react-electron-audio-player|Overtone)-.*(mac\.zip|\.dmg)(\.blockmap)?$/.test(file)
-  if (isRawArtifact && !isFinalArtifact) {
+  if (rawZip.test(file) || rawDmgFile.test(file)) {
     fs.rmSync(path.join(dist, file), { force: true })
     console.log(`  • removed unsafe artifact ${file}`)
   }
