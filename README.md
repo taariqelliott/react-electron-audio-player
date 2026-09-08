@@ -5,6 +5,9 @@ folder on your disk — no accounts, no cloud, no tracking.
 
 Built with Electron, React, TypeScript, Tailwind, SQLite, and the Web Audio API.
 
+![Overtone - Dark Mode](./images/overtone.png)
+![Overtone - Light Mode](./images/overtone2.png)
+
 ## Features
 
 - **Local library** — pick any folder as your library; albums are just folders with a manifest, so your files stay yours
